@@ -1,0 +1,11 @@
+{
+    "name": "ClientApi",
+    "alias": "clientapi",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\ClientApi\\Providers\\ClientApiServiceProvider"
+    ],
+    "files": []
+}

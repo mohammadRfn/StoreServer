@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/license",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\License\\": "app/",
+            "Modules\\License\\Database\\Factories\\": "database/factories/",
+            "Modules\\License\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\License\\Tests\\": "tests/"
+        }
+    }
+}

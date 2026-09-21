@@ -1,0 +1,10 @@
+{
+    "Admin": true,
+    "Audit": true,
+    "Base": true,
+    "ClientApi": true,
+    "Customer": true,
+    "License": true,
+    "Patch": true,
+    "Plan": true
+}

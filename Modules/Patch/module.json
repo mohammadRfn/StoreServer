@@ -1,0 +1,11 @@
+{
+    "name": "Patch",
+    "alias": "patch",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Patch\\Providers\\PatchServiceProvider"
+    ],
+    "files": []
+}

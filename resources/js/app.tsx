@@ -2,8 +2,8 @@ import '../css/app.css';
 import '@fontsource-variable/vazirmatn';
 
 import { createInertiaApp } from '@inertiajs/react';
-import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
-import type { ComponentType } from 'react';
+import { MotionConfig } from 'framer-motion';
+import type { ComponentType, ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { route as ziggyRoute } from 'ziggy-js';
 
@@ -11,21 +11,26 @@ globalThis.route = ziggyRoute;
 
 const appName = import.meta.env.VITE_APP_NAME || 'StoreServer';
 
+type PageModule = { default: ComponentType & { layout?: (page: ReactNode) => ReactNode } };
+const pages = import.meta.glob<PageModule>('./Pages/**/*.tsx');
+
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
-    resolve: (name) =>
-        resolvePageComponent<{ default: ComponentType }>(
-            `./Pages/${name}.tsx`,
-            import.meta.glob<{ default: ComponentType }>('./Pages/**/*.tsx'),
-        ).then((page) => page.default),
+    resolve: async (name) => {
+        const importer = pages[`./Pages/${name}.tsx`];
+        if (!importer) throw new Error(`Page not found: ${name}`);
+        return (await importer()).default;
+    },
     setup({ el, App, props }) {
-        if (!el) {
-            return;
-        }
-
-        createRoot(el).render(<App {...props} />);
+        if (!el) return;
+        createRoot(el).render(
+            <MotionConfig reducedMotion="user">
+                <App {...props} />
+            </MotionConfig>,
+        );
     },
     progress: {
-        color: '#f59e0b',
+        color: '#fbbf24',
+        showSpinner: false,
     },
 });

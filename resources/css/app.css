@@ -1,9 +1,70 @@
 @import 'tailwindcss';
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
+/* Scan Inertia pages/components (Tailwind v4 automatic source detection also covers resources/**) */
+@source '../js/**/*.{ts,tsx}';
+@source '../views/**/*.blade.php';
 
 @theme {
-    --font-sans: 'Vazirmatn Variable', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Vazirmatn Variable', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    --color-brand-50: #fffbeb;
+    --color-brand-100: #fef3c7;
+    --color-brand-300: #fcd34d;
+    --color-brand-400: #fbbf24;
+    --color-brand-500: #f59e0b;
+    --color-brand-600: #d97706;
+
+    --animate-shimmer: shimmer 2.2s linear infinite;
+    @keyframes shimmer {
+        from { background-position: 200% 0; }
+        to { background-position: -200% 0; }
+    }
+}
+
+@layer base {
+    :root {
+        color-scheme: dark;
+    }
+    html {
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+        scroll-behavior: smooth;
+    }
+    body {
+        @apply bg-neutral-950 text-neutral-100 font-sans;
+        font-feature-settings: 'ss01', 'cv01';
+    }
+    ::selection {
+        @apply bg-amber-400/30 text-white;
+    }
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+    }
+    *::-webkit-scrollbar { width: 8px; height: 8px; }
+    *::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 999px; }
+    *::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
+
+    input[type='number']::-webkit-inner-spin-button,
+    input[type='number']::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type='date']::-webkit-calendar-picker-indicator,
+    input[type='datetime-local']::-webkit-calendar-picker-indicator { filter: invert(0.7); cursor: pointer; }
+
+    /* Inertia progress bar */
+    #nprogress .bar { @apply !bg-amber-400 !h-[3px]; box-shadow: 0 0 12px rgba(251, 191, 36, 0.8); }
+    #nprogress .peg { box-shadow: 0 0 10px #fbbf24, 0 0 5px #fbbf24 !important; }
+}
+
+@layer utilities {
+    .text-balance { text-wrap: balance; }
+    .skeleton {
+        @apply animate-shimmer rounded-lg;
+        background: linear-gradient(90deg, rgba(255,255,255,.04) 25%, rgba(255,255,255,.09) 50%, rgba(255,255,255,.04) 75%);
+        background-size: 200% 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }

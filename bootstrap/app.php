@@ -7,6 +7,7 @@ use Modules\Admin\Http\Middleware\EnsureAdminIsActive;
 use Modules\Admin\Http\Middleware\EnsurePermission;
 use Modules\Audit\Http\Middleware\LogApiRequest;
 use Modules\ClientApi\Http\Middleware\AuthenticateLicenseToken;
+use Modules\ClientApi\Http\Middleware\DecodeGzipPayload;
 use Modules\ClientApi\Http\Middleware\VerifyClientSignature;
 use Modules\ClientApi\Http\Middleware\VerifySignedPatchLink;
 
@@ -41,6 +42,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'client.sig'    => VerifyClientSignature::class,
             'patch.link'    => VerifySignedPatchLink::class,
             'api.log'       => LogApiRequest::class,
+            'gzip.decode'   => DecodeGzipPayload::class,
         ]);
 
         $middleware->trustProxies(at: ['127.0.0.1', '::1']);

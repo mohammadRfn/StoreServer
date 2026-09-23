@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\ClientApi\Http\Controllers\ActivationController;
 use Modules\ClientApi\Http\Controllers\HeartbeatController;
+use Modules\ClientApi\Http\Controllers\LogIngestController;
 use Modules\ClientApi\Http\Controllers\PatchClientController;
 use Modules\ClientApi\Http\Controllers\PublicKeyController;
 
@@ -29,6 +30,12 @@ Route::prefix('v1')
         Route::middleware(['client.sig', 'license.token'])->group(function (): void {
             Route::get('/patches', [PatchClientController::class, 'index'])->name('api.v1.patches.index');
             Route::post('/patches/{patchCode}/status', [PatchClientController::class, 'reportStatus'])->name('api.v1.patches.status');
+        });
+
+        // ارسال لاگ ماژول AuditLog گیم‌استور (بدنه ممکن است gzip باشد؛ ابتدا رمزگشایی می‌شود)
+        Route::middleware(['gzip.decode', 'client.sig', 'license.token'])->group(function (): void {
+            Route::post('/logs/ingest', [LogIngestController::class, 'ingest'])->name('api.v1.logs.ingest');
+            Route::post('/logs/ping', [LogIngestController::class, 'ping'])->name('api.v1.logs.ping');
         });
 
         // دانلود: توکن لایسنس + لینک امضاشده کوتاه‌مدت (بدون nonce تا resume ممکن باشد)

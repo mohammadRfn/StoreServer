@@ -21,7 +21,7 @@ class ActivationRequest extends Model
     protected $fillable = [
         'uuid', 'fingerprint', 'customer_name', 'customer_phone', 'app_version',
         'app_version_code', 'system_info', 'request_ip', 'status', 'license_id',
-        'reviewed_by', 'reviewed_at', 'reject_reason',
+        'issued_code_id', 'reviewed_by', 'reviewed_at', 'reject_reason',
     ];
 
     protected $casts = [
@@ -42,6 +42,11 @@ class ActivationRequest extends Model
     public function license(): BelongsTo
     {
         return $this->belongsTo(License::class, 'license_id');
+    }
+
+    public function issuedCode(): BelongsTo
+    {
+        return $this->belongsTo(LicenseCode::class, 'issued_code_id');
     }
 
     public function reviewer(): BelongsTo

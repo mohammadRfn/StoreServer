@@ -1,12 +1,16 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { motion } from 'framer-motion';
-import { Cpu, HardDrive, MemoryStick, Network, Package, Wifi, WifiOff } from 'lucide-react';
+import { Ban, Cpu, HardDrive, MemoryStick, Network, Package, PauseCircle, PlayCircle, Wifi, WifiOff } from 'lucide-react';
+import { useState } from 'react';
 import { Badge, StatusBadge } from '@/Components/ui/Badge';
+import { Button } from '@/Components/ui/Button';
 import { Card, CardHeader } from '@/Components/ui/Card';
+import { ConfirmDialog } from '@/Components/ui/ConfirmDialog';
 import { CopyButton, Mono } from '@/Components/ui/CopyButton';
 import { DataTable, type Column } from '@/Components/ui/DataTable';
 import { KeyValue } from '@/Components/ui/KeyValue';
 import { PageHeader } from '@/Components/ui/PageHeader';
+import { useCan } from '@/Hooks/useCan';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { fadeUp } from '@/lib/motion';
 import { devicePatchState, licenseStatus } from '@/lib/status';
@@ -15,8 +19,20 @@ import type { Device, DevicePatchStatus, PageProps } from '@/types';
 
 type Props = PageProps<{ device: Device }>;
 
+type Action = 'suspend' | 'reactivate' | 'revoke' | null;
+
 export default function DeviceShow({ device }: Props) {
+    const { can } = useCan();
+    const [action, setAction] = useState<Action>(null);
+    const [busy, setBusy] = useState(false);
     const on = isOnline(device.last_heartbeat_at);
+    const license = device.license;
+
+    const post = (name: string, data: Record<string, string> = {}) => {
+        if (!license) return;
+        setBusy(true);
+        router.post(route(name, license.uuid), data, { preserveScroll: true, onFinish: () => { setBusy(false); setAction(null); } });
+    };
     const columns: Column<DevicePatchStatus>[] = [
         { key: 'patch', header: 'پچ', render: (s) => <div><Mono className="text-amber-200">{s.patch?.patch_code}</Mono><p className="text-xs text-neutral-500">{s.patch?.title} → v{s.patch?.to_version}</p></div> },
         { key: 'status', header: 'وضعیت', render: (s) => <div className="flex items-center gap-2"><StatusBadge status={s.status} map={devicePatchState} size="sm" />{s.is_blocked && <Badge tone="danger" size="sm">مسدود</Badge>}</div> },
@@ -62,17 +78,34 @@ export default function DeviceShow({ device }: Props) {
                 <div className="space-y-6">
                     <Card>
                         <CardHeader title="لایسنس" />
-                        {device.license ? (
+                        {license ? (
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
-                                    <Link href={route('admin.licenses.show', device.license.uuid)} className="text-amber-300 hover:underline"><Mono className="text-amber-300">{device.license.uuid.slice(0, 13)}…</Mono></Link>
-                                    <StatusBadge status={device.license.status} map={licenseStatus} size="sm" />
+                                    <Link href={route('admin.licenses.show', license.uuid)} className="text-amber-300 hover:underline"><Mono className="text-amber-300">{license.uuid.slice(0, 13)}…</Mono></Link>
+                                    <StatusBadge status={license.status} map={licenseStatus} size="sm" />
                                 </div>
                                 <KeyValue columns={1} items={[
-                                    { label: 'مشتری', value: device.license.customer?.name },
-                                    { label: 'پلن', value: device.license.plan?.name },
-                                    { label: 'انقضا', value: device.license.duration_type === 'permanent' ? 'دائمی' : formatDate(device.license.expires_at, false) },
+                                    { label: 'مشتری', value: license.customer?.name },
+                                    { label: 'پلن', value: license.plan?.name },
+                                    { label: 'انقضا', value: license.duration_type === 'permanent' ? 'دائمی' : formatDate(license.expires_at, false) },
                                 ]} />
+                                <div className="flex flex-wrap gap-2 border-t border-white/[.06] pt-4">
+                                    {can('license.suspend') && license.status === 'active' && (
+                                        <Button size="sm" variant="outline" icon={<PauseCircle className="size-4" />} onClick={() => setAction('suspend')}>
+                                            غیرفعال‌سازی ریموت
+                                        </Button>
+                                    )}
+                                    {can('license.suspend') && license.status === 'suspended' && (
+                                        <Button size="sm" variant="success" icon={<PlayCircle className="size-4" />} onClick={() => setAction('reactivate')}>
+                                            فعال‌سازی مجدد
+                                        </Button>
+                                    )}
+                                    {can('license.revoke') && license.status !== 'revoked' && (
+                                        <Button size="sm" variant="danger" icon={<Ban className="size-4" />} onClick={() => setAction('revoke')}>
+                                            ابطال
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
                         ) : <p className="text-sm text-neutral-500">بدون لایسنس</p>}
                     </Card>
@@ -91,6 +124,42 @@ export default function DeviceShow({ device }: Props) {
                     )}
                 </div>
             </div>
+
+            {license && (
+                <>
+                    <ConfirmDialog
+                        open={action === 'suspend'}
+                        onClose={() => setAction(null)}
+                        onConfirm={(reason) => post('admin.licenses.suspend', { reason })}
+                        loading={busy}
+                        withReason
+                        title="غیرفعال‌سازی ریموت این دستگاه"
+                        description="نرم‌افزار روی این دستگاه از اولین heartbeat بعدی قفل می‌شود. این عمل قابل بازگشت است."
+                        confirmLabel="غیرفعال کن"
+                        tone="primary"
+                    />
+                    <ConfirmDialog
+                        open={action === 'reactivate'}
+                        onClose={() => setAction(null)}
+                        onConfirm={() => post('admin.licenses.reactivate')}
+                        loading={busy}
+                        title="فعال‌سازی مجدد"
+                        description="لایسنس به وضعیت فعال بازمی‌گردد و نرم‌افزار در heartbeat بعدی باز می‌شود."
+                        confirmLabel="فعال کن"
+                        tone="success"
+                    />
+                    <ConfirmDialog
+                        open={action === 'revoke'}
+                        onClose={() => setAction(null)}
+                        onConfirm={(reason) => post('admin.licenses.revoke', { reason })}
+                        loading={busy}
+                        withReason
+                        title="ابطال دائمی لایسنس این دستگاه"
+                        description="این عمل غیرقابل بازگشت است. توکن‌های صادرشده بی‌اعتبار می‌شوند و دستگاه دیگر قادر به فعال‌سازی نخواهد بود."
+                        confirmLabel="ابطال کن"
+                    />
+                </>
+            )}
         </>
     );
 }

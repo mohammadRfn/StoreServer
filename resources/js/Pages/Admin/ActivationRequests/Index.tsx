@@ -1,7 +1,7 @@
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CheckCircle2, Fingerprint, Phone, Ticket, XCircle } from 'lucide-react';
-import { useState, type FormEvent } from 'react';
+import { CheckCircle2, Copy, Fingerprint, Phone, Ticket, XCircle } from 'lucide-react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { StatusBadge } from '@/Components/ui/Badge';
 import { Button } from '@/Components/ui/Button';
 import { Card } from '@/Components/ui/Card';
@@ -17,7 +17,7 @@ import { useCan } from '@/Hooks/useCan';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { EASE_OUT_EXPO, listItem, stagger } from '@/lib/motion';
 import { activationStatus, durationType } from '@/lib/status';
-import { cn, formatDate, timeAgo } from '@/lib/utils';
+import { cn, copyToClipboard, formatDate, timeAgo } from '@/lib/utils';
 import type { ActivationRequest, ActivationStatus, Customer, DurationType, PageProps, Paginated, Plan } from '@/types';
 
 type Props = PageProps<{
@@ -29,10 +29,17 @@ type Props = PageProps<{
 
 export default function ActivationRequestsIndex({ requests, plans, customers, filters }: Props) {
     const { can } = useCan();
+    const { flash } = usePage<PageProps>().props;
     const [approving, setApproving] = useState<ActivationRequest | null>(null);
     const [rejecting, setRejecting] = useState<ActivationRequest | null>(null);
     const [busy, setBusy] = useState(false);
+    const [plainCode, setPlainCode] = useState<string | null>(null);
     const status = (filters.status ?? '') as ActivationStatus | '';
+
+    // کد یک‌بارمصرف فقط همین یک‌بار در flash نمایش داده می‌شود
+    useEffect(() => {
+        if (flash?.plain_codes?.length) setPlainCode(flash.plain_codes[0]);
+    }, [flash?.plain_codes]);
 
     const setStatus = (s: string) => router.get(route('admin.activation-requests.index'), s ? { status: s } : {}, { preserveState: true, preserveScroll: true, replace: true });
 
@@ -46,6 +53,10 @@ export default function ActivationRequestsIndex({ requests, plans, customers, fi
         <>
             <Head title="درخواست‌های فعال‌سازی" />
             <PageHeader title="درخواست‌های فعال‌سازی" description="دستگاه‌هایی که بدون کد، درخواست فعال‌سازی ارسال کرده‌اند و منتظر تأیید هستند" />
+
+            <AnimatePresence>
+                {plainCode && <PlainCodePanel code={plainCode} onDismiss={() => setPlainCode(null)} />}
+            </AnimatePresence>
 
             <motion.div variants={listItem} className="mb-4">
                 <Tabs
@@ -123,7 +134,12 @@ function RequestCard({ request: r, canReview, onApprove, onReject }: { request: 
                 <div className="relative mt-4 rounded-lg bg-white/[.02] px-3 py-2 text-xs text-neutral-400 ring-1 ring-white/[.05]">
                     {r.status === 'approved' && r.license && (
                         <>
-                            لایسنس <Mono className="text-emerald-300">{r.license.uuid.slice(0, 8)}</Mono> صادر شد
+                            کد مصرف شد و لایسنس <Mono className="text-emerald-300">{r.license.uuid.slice(0, 8)}</Mono> فعال گردید
+                        </>
+                    )}
+                    {r.status === 'approved' && !r.license && r.issuedCode && (
+                        <>
+                            کد <Mono className="text-amber-300">{r.issuedCode.code_prefix}-••••</Mono> صادر شد؛ منتظر واردکردن توسط مشتری در گیم‌استور
                         </>
                     )}
                     {r.status === 'rejected' && <>رد شد{r.reject_reason && `: ${r.reject_reason}`}</>}
@@ -136,7 +152,7 @@ function RequestCard({ request: r, canReview, onApprove, onReject }: { request: 
             {pending && canReview && (
                 <div className="relative mt-4 flex gap-2">
                     <Button block variant="success" size="sm" icon={<CheckCircle2 className="size-4" />} onClick={onApprove}>
-                        تأیید و صدور لایسنس
+                        تأیید و صدور کد
                     </Button>
                     <Button variant="danger" size="sm" icon={<XCircle className="size-4" />} onClick={onReject}>
                         رد
@@ -170,12 +186,12 @@ function ApproveModal({ request, onClose, plans, customers }: { request: Activat
         form.post(route('admin.activation-requests.approve', request.uuid), { preserveScroll: true, onSuccess: () => { form.reset(); onClose(); } });
     };
     return (
-        <Modal open={!!request} onClose={onClose} title="تأیید درخواست و صدور لایسنس" description={request ? `دستگاه ${request.fingerprint.slice(0, 12)}… بلافاصله فعال می‌شود.` : undefined}
-            footer={<><Button variant="ghost" onClick={onClose}>انصراف</Button><Button form="approve-form" type="submit" variant="success" loading={form.processing} icon={<CheckCircle2 className="size-4" />}>تأیید و صدور</Button></>}>
+        <Modal open={!!request} onClose={onClose} title="تأیید درخواست و صدور کد یک‌بارمصرف" description={request ? `یک کد برای دستگاه ${request.fingerprint.slice(0, 12)}… صادر می‌شود؛ خودِ دستگاه فعال نمی‌شود تا مشتری کد را در گیم‌استور وارد کند.` : undefined}
+            footer={<><Button variant="ghost" onClick={onClose}>انصراف</Button><Button form="approve-form" type="submit" variant="success" loading={form.processing} icon={<CheckCircle2 className="size-4" />}>تأیید و صدور کد</Button></>}>
             <form id="approve-form" onSubmit={submit} className="space-y-4 py-2">
-                <Field label="مشتری" required error={form.errors.customer_id} hint={request?.customer_name ? `نام اعلام‌شده در درخواست: ${request.customer_name}` : undefined}>
+                <Field label="مشتری" error={form.errors.customer_id} hint={request?.customer_name ? `نام اعلام‌شده در درخواست: ${request.customer_name} (اختیاری - در صورت خالی‌گذاشتن، هنگام مصرف کد ساخته می‌شود)` : 'اختیاری - در صورت خالی‌گذاشتن، هنگام مصرف کد ساخته می‌شود'}>
                     <Select value={form.data.customer_id} onChange={(e) => form.setData('customer_id', e.target.value)} invalid={!!form.errors.customer_id}>
-                        <option value="">انتخاب مشتری…</option>
+                        <option value="">بدون مشتری از پیش‌تعیین‌شده…</option>
                         {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </Select>
                 </Field>
@@ -193,5 +209,23 @@ function ApproveModal({ request, onClose, plans, customers }: { request: Activat
                 </div>
             </form>
         </Modal>
+    );
+}
+
+function PlainCodePanel({ code, onDismiss }: { code: string; onDismiss: () => void }) {
+    return (
+        <motion.div initial={{ opacity: 0, y: -8, height: 0 }} animate={{ opacity: 1, y: 0, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.4, ease: EASE_OUT_EXPO }} className="mb-6 overflow-hidden">
+            <div className="rounded-xl bg-emerald-500/10 p-4 ring-1 ring-emerald-500/25">
+                <div className="mb-2 flex items-center justify-between">
+                    <p className="text-sm font-medium text-emerald-200">کد یک‌بارمصرف صادر شد - همین الان به مشتری تحویل دهید</p>
+                    <button onClick={onDismiss} className="text-xs text-emerald-300/70 hover:text-emerald-200">بستن</button>
+                </div>
+                <div className="flex items-center gap-2 rounded-lg bg-black/20 px-3 py-2">
+                    <Mono className="flex-1 text-base text-emerald-100">{code}</Mono>
+                    <Button size="xs" variant="ghost" icon={<Copy className="size-3.5" />} onClick={() => copyToClipboard(code)}>کپی</Button>
+                </div>
+                <p className="mt-2 text-[11px] text-emerald-300/60">این کد فقط همین یک‌بار نمایش داده می‌شود و دیگر قابل بازیابی نیست.</p>
+            </div>
+        </motion.div>
     );
 }

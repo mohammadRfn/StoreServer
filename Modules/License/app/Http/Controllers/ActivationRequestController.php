@@ -22,7 +22,7 @@ class ActivationRequestController extends Controller
     public function index(Request $request): InertiaResponse
     {
         $requests = ActivationRequest::query()
-            ->with(['license:id,uuid', 'reviewer:id,name'])
+            ->with(['license:id,uuid', 'issuedCode:id,code_prefix,status', 'reviewer:id,name'])
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')->toString()))
             ->orderByDesc('id')
             ->paginate(20)
@@ -38,15 +38,21 @@ class ActivationRequestController extends Controller
 
     public function approve(ApproveActivationRequest $request, ActivationRequest $activationRequest): RedirectResponse
     {
-        $license = $this->activation->approve(
+        $customerId = $request->integer('customer_id');
+
+        $result = $this->activation->approveWithCode(
             $activationRequest,
-            Customer::query()->findOrFail($request->integer('customer_id')),
+            $customerId ? Customer::query()->findOrFail($customerId) : null,
             $request->integer('plan_id'),
             $request->string('duration_type')->toString(),
+            $request->integer('ttl_days') ?: null,
             $request->user(),
         );
 
-        return back()->with('success', "درخواست تأیید شد و لایسنس {$license->uuid} صادر گردید.");
+        // کد خام فقط همین یک‌بار در flash نمایش داده می‌شود تا ادمین آن را به مشتری تحویل دهد
+        return back()
+            ->with('success', 'درخواست تأیید شد؛ کد یک‌بارمصرف صادر گردید.')
+            ->with('plain_codes', [$result['plain_code']]);
     }
 
     public function reject(Request $request, ActivationRequest $activationRequest): RedirectResponse

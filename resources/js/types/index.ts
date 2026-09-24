@@ -223,10 +223,12 @@ export interface ActivationRequest {
     request_ip?: string | null;
     status: ActivationStatus;
     license_id?: ID | null;
+    issued_code_id?: ID | null;
     reviewed_by?: ID | null;
     reviewed_at?: ISODate | null;
     reject_reason?: string | null;
     license?: Pick<License, 'id' | 'uuid'> | null;
+    issuedCode?: Pick<LicenseCode, 'id' | 'code_prefix' | 'status'> | null;
     reviewer?: { id: ID; name: string } | null;
     created_at: ISODate;
 }

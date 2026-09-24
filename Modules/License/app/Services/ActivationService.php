@@ -62,36 +62,42 @@ class ActivationService
         return $request;
     }
 
-    // تأیید ادمین: انتخاب مشتری، پلن و مدت و سپس صدور و فعال‌سازی لایسنس
-    public function approve(ActivationRequest $request, Customer $customer, int $planId, string $durationType, ?User $actor = null): License
+    /**
+     * تأیید ادمین: به‌جای فعال‌سازی مستقیم دستگاه درخواست‌دهنده، یک کد یک‌بارمصرف
+     * برای پلن/مدت انتخابی صادر می‌شود. ادمین این کد را (خارج از سیستم) به مشتری
+     * تحویل می‌دهد و مشتری خودش آن را در فرم گیم‌استور وارد می‌کند (redeemCode).
+     * دستگاه درخواست‌دهنده اینجا بایند نمی‌شود - چون ممکن است fingerprint فرق کند
+     * یا مشتری روی دستگاه دیگری فعال‌سازی کند.
+     *
+     * @return array{request: ActivationRequest, plain_code: string}
+     */
+    public function approveWithCode(ActivationRequest $request, ?Customer $customer, int $planId, string $durationType, ?int $ttlDays, ?User $actor = null): array
     {
         if ($request->status !== 'pending') {
             throw ValidationException::withMessages(['request' => 'این درخواست قبلاً بررسی شده است.']);
         }
 
-        return DB::transaction(function () use ($request, $customer, $planId, $durationType, $actor): License {
-            $license = $this->licenses->issue($customer->getKey(), $planId, $durationType, $actor, 'تأیید درخواست فعال‌سازی');
-
-            $this->licenses->activate(
-                $license,
-                $request->fingerprint,
-                (array) ($request->system_info ?? []),
-                $request->app_version,
-                $request->request_ip,
+        return DB::transaction(function () use ($request, $customer, $planId, $durationType, $ttlDays, $actor): array {
+            $issued = $this->codes->generate(
+                $planId,
+                $durationType,
+                $customer?->getKey(),
+                $ttlDays ?? (int) config('licensing.codes.default_ttl_days'),
+                $actor,
             );
 
             $request->forceFill([
-                'status'      => 'approved',
-                'license_id'  => $license->getKey(),
-                'reviewed_by' => $actor?->getKey(),
-                'reviewed_at' => Carbon::now('UTC'),
+                'status'          => 'approved',
+                'issued_code_id'  => $issued['model']->getKey(),
+                'reviewed_by'     => $actor?->getKey(),
+                'reviewed_at'     => Carbon::now('UTC'),
             ])->save();
 
-            $this->audit->log('license.approve', 'تأیید درخواست فعال‌سازی', 'ActivationRequest', $request->getKey(), null, [
-                'license_uuid' => $license->uuid,
+            $this->audit->log('license.approve', 'تأیید درخواست فعال‌سازی و صدور کد', 'ActivationRequest', $request->getKey(), null, [
+                'code_prefix' => $issued['model']->code_prefix,
             ]);
 
-            return $license->refresh();
+            return ['request' => $request->refresh(), 'plain_code' => $issued['plain_code']];
         });
     }
 
@@ -154,6 +160,10 @@ class ActivationService
             $device  = $this->licenses->activate($license, $fingerprint, $systemInfo, $appVersion, $ip);
 
             $this->codes->markUsed($code, $license->getKey(), $fingerprint);
+
+            ActivationRequest::query()
+                ->where('issued_code_id', $code->getKey())
+                ->update(['license_id' => $license->getKey()]);
 
             return [
                 'license' => $license->refresh(),

@@ -17,6 +17,7 @@ use Modules\License\Models\DeviceModuleUsage;
 use Modules\License\Models\License;
 use Modules\License\Services\TokenService;
 use Modules\Patch\Services\PatchDeliveryService;
+use Modules\Plan\Models\GameshopModule;
 use Modules\Plan\Services\EntitlementService;
 
 class HeartbeatController extends Controller
@@ -130,13 +131,22 @@ class HeartbeatController extends Controller
      */
     private function recordModuleUsage(Device $device, array $modules): array
     {
+        if ($modules === []) {
+            return [];
+        }
+
+        // فقط کلیدهای واقعاً موجود در کاتالوگ پذیرفته می‌شوند؛ یک اپ دستکاری‌شده
+        // نمی‌تواند کلید جعلی در آمار مصرف تزریق کند
+        static $validKeys = null;
+        $validKeys ??= GameshopModule::query()->pluck('key')->all();
+
         $used = [];
 
         foreach ($modules as $moduleKey => $info) {
             $moduleKey = mb_substr((string) $moduleKey, 0, 64);
             $hits      = max(0, (int) (is_array($info) ? ($info['hits'] ?? 0) : 0));
 
-            if ($moduleKey === '' || $hits === 0) {
+            if ($moduleKey === '' || $hits === 0 || ! in_array($moduleKey, $validKeys, true)) {
                 continue;
             }
 

@@ -136,6 +136,15 @@ export interface Plan {
     created_at?: ISODate;
 }
 
+export interface DeviceModuleUsage {
+    id: ID;
+    device_id: ID;
+    module_key: string;
+    use_count: number;
+    first_used_at?: ISODate | null;
+    last_used_at?: ISODate | null;
+}
+
 export interface Device {
     id: ID;
     license_id: ID;
@@ -157,6 +166,7 @@ export interface Device {
     last_heartbeat_at?: ISODate | null;
     license?: License;
     patch_statuses?: DevicePatchStatus[];
+    module_usage?: DeviceModuleUsage[];
     created_at?: ISODate;
 }
 

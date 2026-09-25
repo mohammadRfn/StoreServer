@@ -1,6 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { motion } from 'framer-motion';
-import { Ban, Cpu, HardDrive, MemoryStick, Network, Package, PauseCircle, PlayCircle, Wifi, WifiOff } from 'lucide-react';
+import { Ban, Cpu, HardDrive, LayoutGrid, MemoryStick, Network, Package, PauseCircle, PlayCircle, Wifi, WifiOff } from 'lucide-react';
 import { useState } from 'react';
 import { Badge, StatusBadge } from '@/Components/ui/Badge';
 import { Button } from '@/Components/ui/Button';
@@ -33,6 +33,13 @@ export default function DeviceShow({ device }: Props) {
         setBusy(true);
         router.post(route(name, license.uuid), data, { preserveScroll: true, onFinish: () => { setBusy(false); setAction(null); } });
     };
+    const moduleUsageColumns: Column<Device['module_usage'] extends (infer U)[] | undefined ? U : never>[] = [
+        { key: 'module', header: 'ماژول', render: (u) => <Mono className="text-amber-200">{u.module_key}</Mono> },
+        { key: 'count', header: 'تعداد استفاده', hideBelow: 'md', render: (u) => <span className="tabular-nums text-neutral-300">{formatNumber(u.use_count)}</span> },
+        { key: 'last', header: 'آخرین استفاده', render: (u) => <span className="text-xs text-neutral-400">{timeAgo(u.last_used_at)}</span> },
+        { key: 'since', header: 'اولین استفاده', hideBelow: 'lg', render: (u) => <span className="text-xs text-neutral-500">{formatDate(u.first_used_at)}</span> },
+    ];
+
     const columns: Column<DevicePatchStatus>[] = [
         { key: 'patch', header: 'پچ', render: (s) => <div><Mono className="text-amber-200">{s.patch?.patch_code}</Mono><p className="text-xs text-neutral-500">{s.patch?.title} → v{s.patch?.to_version}</p></div> },
         { key: 'status', header: 'وضعیت', render: (s) => <div className="flex items-center gap-2"><StatusBadge status={s.status} map={devicePatchState} size="sm" />{s.is_blocked && <Badge tone="danger" size="sm">مسدود</Badge>}</div> },
@@ -73,6 +80,16 @@ export default function DeviceShow({ device }: Props) {
                     <Card padded={false}>
                         <div className="p-5 pb-0"><CardHeader title="وضعیت پچ‌ها" description="پچ‌هایی که به این دستگاه پیشنهاد یا روی آن اعمال شده‌اند" action={<Package className="size-5 text-neutral-500" />} /></div>
                         <DataTable columns={columns} rows={device.patch_statuses ?? []} rowKey={(s) => s.id} emptyTitle="هنوز پچی به این دستگاه ارائه نشده" dense />
+                    </Card>
+                    <Card padded={false}>
+                        <div className="p-5 pb-0"><CardHeader title="مصرف ماژول‌ها" description="طبق آخرین heartbeatهای این دستگاه، از چه بخش‌هایی واقعاً استفاده می‌شود" action={<LayoutGrid className="size-5 text-neutral-500" />} /></div>
+                        <DataTable
+                            columns={moduleUsageColumns}
+                            rows={device.module_usage ?? []}
+                            rowKey={(u) => u.id}
+                            emptyTitle="هنوز داده‌ای از مصرف ماژول دریافت نشده"
+                            dense
+                        />
                     </Card>
                 </div>
                 <div className="space-y-6">

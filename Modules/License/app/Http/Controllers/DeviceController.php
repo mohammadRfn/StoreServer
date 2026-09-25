@@ -34,7 +34,11 @@ class DeviceController extends Controller
 
     public function show(Device $device): InertiaResponse
     {
-        $device->load(['license.customer', 'license.plan', 'patchStatuses.patch:id,patch_code,title,to_version']);
+        $device->load([
+            'license.customer', 'license.plan',
+            'patchStatuses.patch:id,patch_code,title,to_version',
+            'moduleUsage' => fn ($q) => $q->orderByDesc('last_used_at'),
+        ]);
 
         return Inertia::render('Admin/Devices/Show', ['device' => $device]);
     }

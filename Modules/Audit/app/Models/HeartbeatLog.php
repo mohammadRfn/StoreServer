@@ -17,10 +17,12 @@ class HeartbeatLog extends Model
 
     protected $fillable = [
         'license_id', 'device_id', 'app_version', 'license_status',
+        'plan_code', 'modules_used',
         'patches_offered', 'token_refreshed', 'ip', 'duration_ms',
     ];
 
     protected $casts = [
+        'modules_used'    => 'array',
         'patches_offered' => 'integer',
         'token_refreshed' => 'boolean',
         'duration_ms'     => 'integer',

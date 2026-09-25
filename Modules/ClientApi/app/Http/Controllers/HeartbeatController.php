@@ -13,6 +13,7 @@ use Modules\Base\Services\ServerSettings;
 use Modules\Base\Support\SemVer;
 use Modules\ClientApi\Support\ApiResponse;
 use Modules\License\Models\Device;
+use Modules\License\Models\DeviceModuleUsage;
 use Modules\License\Models\License;
 use Modules\License\Services\TokenService;
 use Modules\Patch\Services\PatchDeliveryService;
@@ -39,8 +40,11 @@ class HeartbeatController extends Controller
         $device = $request->attributes->get('device');
 
         $data = $request->validate([
-            'app_version' => ['required', 'string', 'max:32'],
-            'stats'       => ['sometimes', 'array'],
+            'app_version'                  => ['required', 'string', 'max:32'],
+            'stats'                        => ['sometimes', 'array'],
+            'stats.modules'                => ['sometimes', 'array'],
+            'stats.modules.*.hits'         => ['sometimes', 'integer', 'min:0'],
+            'stats.modules.*.last_used_at' => ['sometimes', 'date'],
         ]);
 
         // انقضای تنبل: اگر تاریخ گذشته باشد وضعیت به expired تغییر می‌کند
@@ -66,9 +70,17 @@ class HeartbeatController extends Controller
             ]);
         }
 
+        // مصرف ماژول‌ها را حتی وقتی قفل است هم ثبت کن (تا آخرین رفتار مشتری قبل از قفل دیده شود)
+        $usedModules = $this->recordModuleUsage($device, (array) ($data['stats']['modules'] ?? []));
+        $planCode    = $license->plan?->code;
+
         // لایسنس قفل: هیچ توکن و پچی داده نمی‌شود
         if ($license->isLocked()) {
-            $this->audit->heartbeat($license, $device, $data['app_version'], $license->status, 0, false, (int) ((microtime(true) - $startedAt) * 1000));
+            $this->audit->heartbeat(
+                $license, $device, $data['app_version'], $license->status,
+                0, false, (int) ((microtime(true) - $startedAt) * 1000),
+                $planCode, $usedModules,
+            );
 
             return ApiResponse::locked(
                 match ($license->status) {
@@ -90,18 +102,61 @@ class HeartbeatController extends Controller
         $patchSummaries = $this->patches->summaryForDevice($license, $device);
         $token = $this->tokens->issue($license, $device);
 
-        $this->audit->heartbeat($license, $device, $data['app_version'], $license->status, count($patchSummaries), true, (int) ((microtime(true) - $startedAt) * 1000));
+        $this->audit->heartbeat(
+            $license, $device, $data['app_version'], $license->status,
+            count($patchSummaries), true, (int) ((microtime(true) - $startedAt) * 1000),
+            $planCode, $usedModules,
+        );
 
         return ApiResponse::success([
             'license_status'             => $license->status,
             'locked'                     => false,
             'token'                      => $token,
-            'plan'                       => $license->plan?->code,
+            'plan'                       => $planCode,
             'entitlements'               => $this->entitlements->forLicense($license),
             'expires_at'                 => $license->expires_at?->toIso8601String(),
             'valid_until'                => $this->tokens->validUntilFor()->toIso8601String(),
             'heartbeat_interval_minutes' => $this->settings->heartbeatIntervalMinutes(),
             'patches'                    => $patchSummaries,
         ]);
+    }
+
+    /**
+     * مصرف ماژول‌های گزارش‌شده در این heartbeat را روی دستگاه تجمیع می‌کند و
+     * فهرست کلیدهای استفاده‌شده را برای ثبت در heartbeat_logs برمی‌گرداند.
+     *
+     * @param array<string, mixed> $modules
+     * @return list<string>
+     */
+    private function recordModuleUsage(Device $device, array $modules): array
+    {
+        $used = [];
+
+        foreach ($modules as $moduleKey => $info) {
+            $moduleKey = mb_substr((string) $moduleKey, 0, 64);
+            $hits      = max(0, (int) (is_array($info) ? ($info['hits'] ?? 0) : 0));
+
+            if ($moduleKey === '' || $hits === 0) {
+                continue;
+            }
+
+            $lastUsedAt = is_array($info) && isset($info['last_used_at'])
+                ? Carbon::parse((string) $info['last_used_at'])->utc()
+                : Carbon::now('UTC');
+
+            $row = DeviceModuleUsage::query()->firstOrNew([
+                'device_id'  => $device->getKey(),
+                'module_key' => $moduleKey,
+            ]);
+
+            $row->use_count     = ($row->exists ? $row->use_count : 0) + $hits;
+            $row->last_used_at  = $lastUsedAt;
+            $row->first_used_at ??= $lastUsedAt;
+            $row->save();
+
+            $used[] = $moduleKey;
+        }
+
+        return $used;
     }
 }

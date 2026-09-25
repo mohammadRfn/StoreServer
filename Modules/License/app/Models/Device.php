@@ -45,4 +45,9 @@ class Device extends Model
     {
         return $this->hasMany(DevicePatchStatus::class, 'device_id');
     }
+
+    public function moduleUsage(): HasMany
+    {
+        return $this->hasMany(DeviceModuleUsage::class, 'device_id');
+    }
 }

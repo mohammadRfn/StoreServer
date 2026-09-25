@@ -87,6 +87,7 @@ class AuditLogger
         ]);
     }
 
+    /** @param list<string> $moduleKeys */
     public function heartbeat(
         License $license,
         Device $device,
@@ -95,12 +96,16 @@ class AuditLogger
         int $patchesOffered,
         bool $tokenRefreshed,
         int $durationMs,
+        ?string $planCode = null,
+        array $moduleKeys = [],
     ): HeartbeatLog {
         return HeartbeatLog::query()->create([
             'license_id'      => $license->getKey(),
             'device_id'       => $device->getKey(),
             'app_version'     => $appVersion,
             'license_status'  => $licenseStatus,
+            'plan_code'       => $planCode,
+            'modules_used'    => $moduleKeys,
             'patches_offered' => $patchesOffered,
             'token_refreshed' => $tokenRefreshed,
             'ip'              => request()?->ip(),

@@ -189,8 +189,25 @@ class LicenseService
         return $license;
     }
 
-    public function setModuleOverride(License $license, int $moduleId, bool $enabled, ?string $reason, ?User $actor = null): LicenseModuleOverride
+    public function setModuleOverride(License $license, int $moduleId, bool $enabled, ?string $reason, ?User $actor = null): ?LicenseModuleOverride
     {
+        $planDefault = (bool) ($license->plan?->modules()->where('gameshop_modules.id', $moduleId)->value('plan_modules.enabled') ?? false);
+
+        // اگر مقدار جدید دقیقاً همان پیش‌فرض پلن باشد، دیگر «استثنا» نیست؛ ردیفش را پاک کن
+        if ($enabled === $planDefault) {
+            $existing = LicenseModuleOverride::query()
+                ->where(['license_id' => $license->getKey(), 'module_id' => $moduleId])
+                ->first();
+
+            if ($existing !== null) {
+                $existing->delete();
+                $this->history($license, 'override', $license->plan_id, $license->plan_id, $license->expires_at, $license->expires_at, $actor, $reason ?? 'بازگشت به پیش‌فرض پلن');
+                $this->audit->log('license.override', 'حذف استثنای ماژول (بازگشت به پلن)', 'License', $license->getKey(), $existing->toArray(), null);
+            }
+
+            return null;
+        }
+
         $override = LicenseModuleOverride::query()->updateOrCreate(
             ['license_id' => $license->getKey(), 'module_id' => $moduleId],
             ['enabled' => $enabled, 'reason' => $reason, 'created_by' => $actor?->getKey()],

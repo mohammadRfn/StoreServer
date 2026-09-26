@@ -60,6 +60,7 @@ class LicenseController extends Controller
             'license'      => $license,
             'entitlements' => $this->entitlements->forLicense($license),
             'modules'      => GameshopModule::query()->orderBy('sort_order')->get(['id', 'key', 'title', 'is_core']),
+            'plans'        => Plan::query()->orderBy('sort_order')->get(['id', 'code', 'name']),
         ]);
     }
 

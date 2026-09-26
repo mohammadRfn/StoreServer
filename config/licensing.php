@@ -20,10 +20,11 @@ return [
     | مقدار پیش‌فرض: storage/keys که با .htaccess/nginx از دسترس عمومی خارج است.
     */
     'keys' => [
-        'path'        => env('LICENSING_KEYS_PATH', storage_path('keys')),
-        'private_key' => env('LICENSING_PRIVATE_KEY_FILE'), // خالی = {kid}.key در مسیر keys.path
-        'public_key'  => env('LICENSING_PUBLIC_KEY_FILE'),
-        'active_kid'  => env('LICENSING_ACTIVE_KID', null),
+        'path'               => env('LICENSING_KEYS_PATH', storage_path('keys')),
+        'private_key'        => env('LICENSING_PRIVATE_KEY_FILE'), // خالی = {kid}.key در مسیر keys.path
+        'private_key_value'  => env('LICENSING_PRIVATE_KEY'), // مقدار مستقیم کلید (base64url)؛ اگر ست باشد بر فایل اولویت دارد
+        'public_key'         => env('LICENSING_PUBLIC_KEY_FILE'),
+        'active_kid'         => env('LICENSING_ACTIVE_KID', null),
     ],
 
     /*

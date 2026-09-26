@@ -11,9 +11,12 @@ use Modules\Customer\Models\Customer;
 use Modules\Plan\Models\Plan;
 
 /**
- * کد یک‌بارمصرف؛ فقط هش SHA-256 ذخیره می‌شود و کد خام هرگز در دیتابیس نیست
+ * کد یک‌بارمصرف؛ هش SHA-256 برای اعتبارسنجی سریع نگه داشته می‌شود و نسخه‌ی خام
+ * علاوه بر آن، رمزنگاری‌شده (با کلید اپ) در code_plain ذخیره می‌شود تا در پنل ادمین
+ * همیشه قابل نمایش کامل باشد؛ کدهای قدیمی‌تر از این تغییر مقدار code_plain ندارند
  *
  * @property string $code_hash
+ * @property string|null $code_plain
  * @property string $status
  */
 class LicenseCode extends Model
@@ -21,13 +24,14 @@ class LicenseCode extends Model
     protected $table = 'license_codes';
 
     protected $fillable = [
-        'code_hash', 'code_prefix', 'customer_id', 'plan_id', 'duration_type',
+        'code_hash', 'code_plain', 'code_prefix', 'customer_id', 'plan_id', 'duration_type',
         'status', 'expires_at', 'used_at', 'used_license_id', 'used_fingerprint', 'created_by',
     ];
 
     protected $hidden = ['code_hash'];
 
     protected $casts = [
+        'code_plain' => 'encrypted',
         'expires_at' => 'datetime',
         'used_at'    => 'datetime',
         'created_at' => 'datetime',

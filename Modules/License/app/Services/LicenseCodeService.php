@@ -9,7 +9,7 @@ use Illuminate\Support\Carbon;
 use Modules\Audit\Services\AuditLogger;
 use Modules\License\Models\LicenseCode;
 
-// تولید و مصرف کدهای یک‌بارمصرف؛ کد خام فقط یک‌بار به ادمین نشان داده می‌شود
+// تولید و مصرف کدهای یک‌بارمصرف؛ کد خام هم به‌صورت رمزنگاری‌شده در دیتابیس نگه داشته می‌شود تا در لیست قابل نمایش کامل باشد
 class LicenseCodeService
 {
     public function __construct(private readonly AuditLogger $audit) {}
@@ -22,6 +22,7 @@ class LicenseCodeService
 
         $code = LicenseCode::query()->create([
             'code_hash'     => $hash,
+            'code_plain'    => $plain,
             'code_prefix'   => mb_substr($plain, 0, 7),
             'customer_id'   => $customerId,
             'plan_id'       => $planId,

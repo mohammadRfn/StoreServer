@@ -246,6 +246,7 @@ export interface ActivationRequest {
 export interface LicenseCode {
     id: ID;
     code_prefix: string;
+    code_plain?: string | null;
     customer_id?: ID | null;
     plan_id: ID;
     duration_type: DurationType;

@@ -6,7 +6,7 @@ import { StatusBadge } from '@/Components/ui/Badge';
 import { Button } from '@/Components/ui/Button';
 import { Card } from '@/Components/ui/Card';
 import { ConfirmDialog } from '@/Components/ui/ConfirmDialog';
-import { Mono } from '@/Components/ui/CopyButton';
+import { CopyButton, Mono } from '@/Components/ui/CopyButton';
 import { DataTable, type Column } from '@/Components/ui/DataTable';
 import { Field, Input, Select } from '@/Components/ui/Field';
 import { Modal } from '@/Components/ui/Modal';
@@ -45,7 +45,18 @@ export default function LicenseCodesIndex({ codes, plans, customers, filters }: 
     const setStatus = (s: string) => router.get(route('admin.license-codes.index'), s ? { status: s } : {}, { preserveState: true, preserveScroll: true, replace: true });
 
     const columns: Column<LicenseCode>[] = [
-        { key: 'prefix', header: 'کد', render: (c) => <Mono className="text-amber-200">{c.code_prefix}-••••-••••-••••</Mono> },
+        {
+            key: 'prefix',
+            header: 'کد',
+            render: (c) => c.code_plain
+                ? (
+                    <span className="inline-flex items-center gap-1">
+                        <Mono className="text-amber-200">{c.code_plain}</Mono>
+                        <CopyButton value={c.code_plain} />
+                    </span>
+                )
+                : <Mono className="text-amber-200">{c.code_prefix}-••••-••••-••••</Mono>,
+        },
         { key: 'status', header: 'وضعیت', render: (c) => <StatusBadge status={c.status} map={codeStatus} /> },
         { key: 'plan', header: 'پلن / مدت', render: (c) => <span className="text-sm">{c.plan?.name} <span className="text-neutral-500">· {durationType[c.duration_type]}</span></span> },
         { key: 'customer', header: 'مشتری', hideBelow: 'md', render: (c) => c.customer?.name ?? <span className="text-neutral-600">آزاد</span> },

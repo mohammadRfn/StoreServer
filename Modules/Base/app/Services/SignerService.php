@@ -124,11 +124,23 @@ class SignerService
         ];
     }
 
-    // بارگذاری کلید خصوصی از مسیر فایل (هرگز از دیتابیس)
+    // بارگذاری کلید خصوصی؛ اول از env مشترک بین همه‌ی replica ها (private_key_value)، وگرنه از فایل خارج از webroot
     private function privateKey(): string
     {
         if ($this->privateKey !== null) {
             return $this->privateKey;
+        }
+
+        $inlineValue = config('licensing.keys.private_key_value');
+
+        if (is_string($inlineValue) && $inlineValue !== '') {
+            $raw = Base64Url::decode(trim($inlineValue));
+
+            if (strlen($raw) !== SODIUM_CRYPTO_SIGN_SECRETKEYBYTES) {
+                throw new RuntimeException('کلید خصوصی (از env) معتبر نیست.');
+            }
+
+            return $this->privateKey = $raw;
         }
 
         $configured = config('licensing.keys.private_key');

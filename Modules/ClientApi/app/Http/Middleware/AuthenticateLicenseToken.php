@@ -23,7 +23,10 @@ class AuthenticateLicenseToken
 
     public function handle(Request $request, Closure $next, string $mode = 'strict'): Response
     {
-        $token = $request->bearerToken();
+        // بعضی محیط‌های هاست (Nginx/PHP-FPM بدون fastcgi_param HTTP_AUTHORIZATION،
+        // یا LiteSpeed/Apache با AllowOverride غیرفعال) هدر Authorization را قبل از
+        // رسیدن به PHP حذف می‌کنند؛ کلاینت توکن را هم در X-GS-License-Token می‌فرستد.
+        $token = $request->bearerToken() ?: $request->header('X-GS-License-Token');
 
         if ($token === null || $token === '') {
             return ApiResponse::error('TOKEN_MISSING', 'توکن لایسنس ارسال نشده است.', 401);

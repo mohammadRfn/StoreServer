@@ -26,7 +26,10 @@ class LogApiRequest
         /** @var Response $response */
         $response = $next($request);
         $response->headers->set('X-Request-Id', $requestId);
-
+        // پولینگ سبک وضعیت هر ~۳۰ ثانیه است؛ پاسخ‌های موفقش لاگ نمی‌شود
+        if ($request->is('api/v1/license/state') && $response->isSuccessful()) {
+            return $response;
+        }
         try {
             /** @var License|null $license */
             $license = $request->attributes->get('license');

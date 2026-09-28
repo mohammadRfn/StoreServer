@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\ClientApi\Http\Controllers\ActivationController;
 use Modules\ClientApi\Http\Controllers\HeartbeatController;
+use Modules\ClientApi\Http\Controllers\LicenseStateController;
 use Modules\ClientApi\Http\Controllers\LogIngestController;
 use Modules\ClientApi\Http\Controllers\PatchClientController;
 use Modules\ClientApi\Http\Controllers\PublicKeyController;
@@ -24,8 +25,10 @@ Route::prefix('v1')
         Route::get('/activation/status/{uuid}', [ActivationController::class, 'status'])->name('api.v1.activation.status');
 
         // اندپوینت‌های محافظت‌شده با توکن لایسنس
-        Route::middleware(['client.sig', 'license.token:allow_expired'])
-            ->post('/heartbeat', HeartbeatController::class)->name('api.v1.heartbeat');
+        Route::middleware(['client.sig', 'license.token:allow_expired'])->group(function (): void {
+            Route::post('/heartbeat', HeartbeatController::class)->name('api.v1.heartbeat');
+            Route::get('/license/state', LicenseStateController::class)->name('api.v1.license.state');
+        });
 
         Route::middleware(['client.sig', 'license.token'])->group(function (): void {
             Route::get('/patches', [PatchClientController::class, 'index'])->name('api.v1.patches.index');

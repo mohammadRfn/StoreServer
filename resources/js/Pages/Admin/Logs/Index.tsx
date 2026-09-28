@@ -7,7 +7,7 @@ import { Button } from '@/Components/ui/Button';
 import { Card } from '@/Components/ui/Card';
 import { Mono } from '@/Components/ui/CopyButton';
 import { EmptyState } from '@/Components/ui/EmptyState';
-import { Input } from '@/Components/ui/Field';
+import { Input, Select } from '@/Components/ui/Field';
 import { PageHeader } from '@/Components/ui/PageHeader';
 import { Pagination } from '@/Components/ui/Pagination';
 import { SearchInput } from '@/Components/ui/SearchInput';
@@ -20,11 +20,24 @@ import { logCategory, type Tone } from '@/lib/status';
 import { cn, formatDate, timeAgo } from '@/lib/utils';
 import type { LogCategory, LogRow, PageProps, Paginated } from '@/types';
 
-type Props = PageProps<{ category: LogCategory; categories: LogCategory[]; logs: Paginated<LogRow>; filters: { q?: string; from?: string; to?: string; category?: string } }>;
+type Props = PageProps<{ category: LogCategory; categories: LogCategory[]; logs: Paginated<LogRow>; filters: { q?: string; from?: string; to?: string; category?: string; license_id?: string; device_id?: string; channel?: string; level?: string } }>;
+
+const clientChannels = ['http', 'model', 'auth', 'security', 'job', 'console', 'error', 'system', 'business', 'sync'];
+const clientLevels = ['debug', 'info', 'notice', 'warning', 'error', 'critical', 'alert', 'emergency'];
 
 export default function LogsIndex({ category, categories, logs, filters }: Props) {
     const { can } = useCan();
-    const { values, set, isDirty } = useDebouncedFilters(route('admin.logs.index'), { category, q: filters.q ?? '', from: filters.from ?? '', to: filters.to ?? '' });
+    const { values, set, isDirty } = useDebouncedFilters(route('admin.logs.index'), {
+        category,
+        q: filters.q ?? '',
+        from: filters.from ?? '',
+        to: filters.to ?? '',
+        license_id: filters.license_id ?? '',
+        device_id: filters.device_id ?? '',
+        channel: filters.channel ?? '',
+        level: filters.level ?? '',
+    });
+    const isClient = category === 'client' || category === 'client_error';
     const setCategory = (c: LogCategory) => router.get(route('admin.logs.index'), { category: c }, { preserveState: false, replace: true });
 
     const exportUrl = route('admin.logs.export', Object.fromEntries(Object.entries(values).filter(([, v]) => v)));
@@ -41,11 +54,29 @@ export default function LogsIndex({ category, categories, logs, filters }: Props
             <Card padded={false}>
                 <motion.div variants={fadeUp} className="flex flex-col gap-3 border-b border-white/[.06] p-4 lg:flex-row lg:items-center">
                     <div className="flex-1"><SearchInput value={values.q} onChange={(v) => set('q', v)} placeholder={`جستجو در لاگ‌های ${logCategory[category]?.label ?? ''}…`} /></div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                        {isClient && (
+                            <>
+                                <Input value={values.license_id} onChange={(e) => set('license_id', e.target.value)} placeholder="شناسه لایسنس" inputMode="numeric" dir="ltr" className="w-32" />
+                                <Input value={values.device_id} onChange={(e) => set('device_id', e.target.value)} placeholder="شناسه دستگاه" inputMode="numeric" dir="ltr" className="w-32" />
+                                {category === 'client' && (
+                                    <Select value={values.channel} onChange={(e) => set('channel', e.target.value)} className="w-36">
+                                        <option value="">همه کانال‌ها</option>
+                                        {clientChannels.map((c) => <option key={c} value={c}>{c}</option>)}
+                                    </Select>
+                                )}
+                                <Select value={values.level} onChange={(e) => set('level', e.target.value)} className="w-36">
+                                    <option value="">همه سطوح</option>
+                                    {clientLevels.map((l) => <option key={l} value={l}>{l}</option>)}
+                                </Select>
+                            </>
+                        )}
                         <Input type="date" value={values.from} onChange={(e) => set('from', e.target.value)} dir="ltr" className="w-40" />
                         <span className="text-xs text-neutral-500">تا</span>
                         <Input type="date" value={values.to} onChange={(e) => set('to', e.target.value)} dir="ltr" className="w-40" />
-                        {isDirty && (values.q || values.from || values.to) && <Button variant="ghost" size="sm" icon={<RotateCcw className="size-3.5" />} onClick={() => { set('q', ''); set('from', ''); set('to', ''); }} />}
+                        {isDirty && (values.q || values.from || values.to || values.license_id || values.device_id || values.channel || values.level) && (
+                            <Button variant="ghost" size="sm" icon={<RotateCcw className="size-3.5" />} onClick={() => { (['q', 'from', 'to', 'license_id', 'device_id', 'channel', 'level'] as const).forEach((k) => set(k, '')); }} />
+                        )}
                     </div>
                 </motion.div>
 
@@ -66,7 +97,7 @@ LogsIndex.layout = (page: React.ReactNode) => <AdminLayout>{page}</AdminLayout>;
 
 /* -------------------------------------------------------------------------- */
 
-const severityTone: Record<string, Tone> = { critical: 'danger', error: 'danger', high: 'danger', warning: 'warning', medium: 'warning', notice: 'info', info: 'info', low: 'neutral', debug: 'neutral' };
+const severityTone: Record<string, Tone> = { emergency: 'danger', alert: 'danger', critical: 'danger', error: 'danger', high: 'danger', warning: 'warning', medium: 'warning', notice: 'info', info: 'info', low: 'neutral', debug: 'neutral' };
 
 function summarize(row: LogRow, category: LogCategory): { title: string; subtitle?: string; tone: Tone; tag?: string } {
     const s = (k: string) => (typeof row[k] === 'string' || typeof row[k] === 'number' ? String(row[k]) : undefined);
@@ -79,6 +110,17 @@ function summarize(row: LogRow, category: LogCategory): { title: string; subtitl
         case 'api': { const code = Number(s('status_code') ?? 0); return { title: `${s('method') ?? ''} ${s('path') ?? ''}`, subtitle: [s('error_code'), s('ip'), s('duration_ms') && `${s('duration_ms')}ms`].filter(Boolean).join(' · '), tone: code >= 500 ? 'danger' : code >= 400 ? 'warning' : 'success', tag: String(code) }; }
         case 'error': return { title: s('message') ?? '', subtitle: [s('exception_class'), s('file') && `${s('file')}:${s('line') ?? ''}`].filter(Boolean).join(' · '), tone: 'danger', tag: s('level') };
         case 'patch': return { title: `دانلود پچ #${s('patch_id') ?? ''} · ${s('status') ?? ''}`, subtitle: [s('ip'), s('bytes_sent') && `${s('bytes_sent')} B`, s('range_header')].filter(Boolean).join(' · '), tone: s('status') === 'completed' ? 'success' : 'info' };
+        case 'client':
+        case 'client_error': {
+            const license = row.license as { uuid?: string } | null | undefined;
+            const device = row.device as { hostname?: string } | null | undefined;
+            return {
+                title: s('description') ?? s('action') ?? '',
+                subtitle: [license?.uuid && `لایسنس ${license.uuid.slice(0, 8)}`, device?.hostname, s('app_version') && `v${s('app_version')}`, s('actor_name'), s('channel')].filter(Boolean).join(' · '),
+                tone: severityTone[s('level') ?? ''] ?? 'info',
+                tag: s('action'),
+            };
+        }
         default: return { title: JSON.stringify(row).slice(0, 80), tone: 'neutral' };
     }
 }

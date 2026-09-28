@@ -80,6 +80,8 @@ export const logCategory: Record<LogCategory, { label: string; description: stri
     api: { label: 'API', description: 'درخواست‌های کلاینت' },
     error: { label: 'خطا', description: 'استثناهای سرور' },
     patch: { label: 'دانلود پچ', description: 'دانلودهای پچ توسط دستگاه‌ها' },
+    client_error: { label: 'خطاهای اپ', description: 'خطاهایی که اپ‌های مشتری‌ها به سرور ارسال کرده‌اند' },
+    client: { label: 'لاگ اپ‌ها', description: 'همه‌ی لاگ‌های ارسالی از اپ‌های مشتری‌ها (مدل، احراز هویت، امنیتی، سیستم و …)' },
 };
 
 export const toneClasses: Record<Tone, string> = {

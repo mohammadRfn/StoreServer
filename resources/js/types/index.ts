@@ -13,7 +13,7 @@ export type CodeStatus = 'active' | 'used' | 'expired' | 'revoked';
 export type PatchStatus = 'draft' | 'scheduled' | 'published' | 'withdrawn';
 export type PatchTargetType = 'all' | 'plans' | 'licenses';
 export type DevicePatchState = 'offered' | 'downloading' | 'applied' | 'failed' | 'skipped';
-export type LogCategory = 'audit' | 'license' | 'heartbeat' | 'device' | 'security' | 'api' | 'error' | 'patch';
+export type LogCategory = 'audit' | 'license' | 'heartbeat' | 'device' | 'security' | 'api' | 'error' | 'patch' | 'client_error' | 'client';
 
 /* ------------------------------ Pagination ------------------------------- */
 

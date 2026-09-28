@@ -7,6 +7,7 @@ namespace Modules\Audit\Console;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Modules\Audit\Services\ClientLogPruner;
 use Modules\Base\Services\ServerSettings;
 
 // پاکسازی لاگ‌ها بر اساس retention تنظیمات سرور
@@ -54,6 +55,11 @@ class PruneLogsCommand extends Command
             }
 
             $rows[] = [$table, $days, $count];
+        }
+
+        // جدول‌های لاگ دریافتی از مشتری‌ها
+        foreach (app(ClientLogPruner::class)->prune($dryRun) as $row) {
+            $rows[] = $row;
         }
 
         $this->table(['جدول', 'نگهداشت (روز)', 'تعداد رکورد' . ($dryRun ? ' (بدون حذف)' : ' حذف‌شده')], $rows);

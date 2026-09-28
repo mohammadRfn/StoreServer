@@ -12,6 +12,7 @@ use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Modules\Audit\Models\ApiRequestLog;
 use Modules\Audit\Models\AuditLog;
+use Modules\Audit\Models\ClientAuditLog;
 use Modules\Audit\Models\DeviceLog;
 use Modules\Audit\Models\ErrorLog;
 use Modules\Audit\Models\HeartbeatLog;
@@ -32,6 +33,8 @@ class LogController extends Controller
         'api'       => ApiRequestLog::class,
         'error'     => ErrorLog::class,
         'patch'     => PatchDownload::class,
+        'client_error' => ClientAuditLog::class, // خطاهای اپ‌ها
+        'client'       => ClientAuditLog::class, // همه‌ی لاگ‌های اپ‌ها
     ];
 
     public function index(Request $request): InertiaResponse
@@ -43,7 +46,7 @@ class LogController extends Controller
             'category'   => $category,
             'categories' => array_keys($this->categories),
             'logs'       => $logs,
-            'filters'    => $request->only('q', 'from', 'to', 'category'),
+            'filters'    => $request->only('q', 'from', 'to', 'category', 'license_id', 'device_id', 'channel', 'level'),
         ]);
     }
 
@@ -69,7 +72,7 @@ class LogController extends Controller
                 }
 
                 fputcsv($handle, array_map(
-                    static fn ($value) => is_scalar($value) || $value === null ? $value : json_encode($value, JSON_UNESCAPED_UNICODE),
+                    static fn($value) => is_scalar($value) || $value === null ? $value : json_encode($value, JSON_UNESCAPED_UNICODE),
                     $data,
                 ));
             }
@@ -85,8 +88,12 @@ class LogController extends Controller
         /** @var Builder $query */
         $query = $model::query();
 
-        $query->when($request->filled('from'), fn (Builder $q) => $q->where('created_at', '>=', $request->date('from')))
-            ->when($request->filled('to'), fn (Builder $q) => $q->where('created_at', '<=', $request->date('to')))
+        if ($model === ClientAuditLog::class) {
+            $this->applyClientFilters($query, $category, $request);
+        }
+
+        $query->when($request->filled('from'), fn(Builder $q) => $q->where('created_at', '>=', $request->date('from')))
+            ->when($request->filled('to'), fn(Builder $q) => $q->where('created_at', '<=', $request->date('to')))
             ->orderByDesc('id');
 
         $term = $request->string('q')->toString();
@@ -101,6 +108,7 @@ class LogController extends Controller
                 'security'  => ['type', 'message', 'fingerprint', 'ip', 'endpoint'],
                 'api'       => ['path', 'method', 'error_code', 'fingerprint', 'ip'],
                 'error'     => ['message', 'exception_class', 'file'],
+                'client', 'client_error' => ['action', 'description', 'entity_label', 'actor_name', 'route', 'ip', 'app_version', 'hostname'],
                 default     => ['ip', 'status'],
             };
 
@@ -112,5 +120,21 @@ class LogController extends Controller
         }
 
         return $query;
+    }
+
+    // فیلترهای مخصوص لاگ‌های دریافتی از اپ‌ها
+    private function applyClientFilters(\Illuminate\Database\Eloquent\Builder $query, string $category, Request $request): void
+    {
+        $query->with(['license:id,uuid', 'device:id,hostname,fingerprint']);
+
+        if ($category === 'client_error') {
+            $query->where('channel', 'error');
+        }
+
+        $query
+            ->when($request->filled('license_id'), fn ($q) => $q->where('license_id', $request->integer('license_id')))
+            ->when($request->filled('device_id'), fn ($q) => $q->where('device_id', $request->integer('device_id')))
+            ->when($category === 'client' && $request->filled('channel'), fn ($q) => $q->where('channel', $request->string('channel')->toString()))
+            ->when($request->filled('level'), fn ($q) => $q->where('level', $request->string('level')->toString()));
     }
 }

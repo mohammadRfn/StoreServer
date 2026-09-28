@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Modules\Audit\Services;
 
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Modules\Audit\Models\ClientAuditBatch;
 use Modules\Audit\Models\ClientAuditLog;
 use Modules\License\Models\Device;
@@ -155,14 +157,29 @@ class ClientLogIngestor
                 'created_at'     => $now,
             ];
 
-            // insertOrIgnore به‌خاطر UNIQUE(uuid): تکراری بی‌سروصدا نادیده گرفته می‌شود
-            $inserted = ClientAuditLog::query()->insertOrIgnore([$row]);
-
-            if ($inserted > 0) {
+            try {
+                ClientAuditLog::query()->insert([$row]);
                 $accepted[] = $uuid;
-            } else {
-                // یا رکورد از batch دیگری قبلاً درج شده (تکراری واقعی)، یا خطای داده
-                $accepted[] = $uuid; // idempotent: از دید کلاینت موفق تلقی می‌شود
+            } catch (QueryException $e) {
+                // کد 1062 = کلید یکتای تکراری؛ فقط اگر همین uuid برای همین لایسنس قبلاً ثبت شده باشد
+                // (retry کلاینت) idempotent محسوب می‌شود. هر خطای دیگر باید دیده شود، نه پنهان.
+                $existing = ((int) ($e->errorInfo[1] ?? 0)) === 1062
+                    ? ClientAuditLog::query()->where('uuid', $uuid)->first(['id', 'license_id'])
+                    : null;
+
+                if ($existing !== null && (int) $existing->license_id === (int) $license->getKey()) {
+                    $accepted[] = $uuid;
+
+                    continue;
+                }
+
+                Log::warning('[ClientLogIngestor] درج لاگ ناموفق', [
+                    'uuid'       => $uuid,
+                    'license_id' => $license->getKey(),
+                    'error'      => $e->errorInfo[2] ?? $e->getMessage(),
+                ]);
+
+                $rejected[] = ['uuid' => $uuid, 'reason' => $existing !== null ? 'UUID_CONFLICT' : 'STORE_FAILED'];
             }
         }
 

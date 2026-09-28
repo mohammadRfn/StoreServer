@@ -32,10 +32,8 @@ class ClientLogSummary
 
         $base = static fn (): \Illuminate\Database\Eloquent\Builder => ClientAuditLog::query()->where($column, $id);
 
-        // «خطا» = کانال error یا سطح error و بالاتر
-        $isError = static fn (Builder $q): Builder => $q
-            ->whereIn('level', self::ERROR_LEVELS)
-            ->orWhere('channel', 'error');
+        // «خطا» = رکوردهای کانال error؛ هم‌راستا با تب «خطاهای اپ» در پنل
+        $isError = static fn (Builder $q): Builder => $q->where('channel', 'error');
 
         $last = $base()->latest('id')->first(['id', 'created_at']);
 
@@ -44,7 +42,7 @@ class ClientLogSummary
             'errors_24h'       => $base()->where('created_at', '>=', $since)->where($isError)->count(),
             'security_24h'     => $base()->where('created_at', '>=', $since)->where('channel', 'security')->count(),
             'recent'           => $base()
-                ->where(fn (Builder $q) => $q->whereIn('level', self::ERROR_LEVELS)->orWhereIn('channel', ['error', 'security']))
+                ->whereIn('channel', ['error', 'security'])
                 ->latest('id')
                 ->limit(8)
                 ->get(['id', 'level', 'channel', 'action', 'description', 'occurred_at', 'created_at']),

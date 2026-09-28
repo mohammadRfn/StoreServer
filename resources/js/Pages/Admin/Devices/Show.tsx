@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { motion } from 'framer-motion';
 import { Ban, Cpu, HardDrive, LayoutGrid, MemoryStick, Network, Package, PauseCircle, PlayCircle, Wifi, WifiOff } from 'lucide-react';
 import { useState } from 'react';
+import { ClientLogsCard } from '@/Components/ClientLogsCard';
 import { Badge, StatusBadge } from '@/Components/ui/Badge';
 import { Button } from '@/Components/ui/Button';
 import { Card, CardHeader } from '@/Components/ui/Card';
@@ -15,13 +16,13 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import { fadeUp } from '@/lib/motion';
 import { devicePatchState, licenseStatus } from '@/lib/status';
 import { cn, formatDate, formatNumber, isOnline, timeAgo } from '@/lib/utils';
-import type { Device, DevicePatchStatus, PageProps } from '@/types';
+import type { ClientLogSummary, Device, DevicePatchStatus, PageProps } from '@/types';
 
-type Props = PageProps<{ device: Device }>;
+type Props = PageProps<{ device: Device; clientLogs?: ClientLogSummary | null }>;
 
 type Action = 'suspend' | 'reactivate' | 'revoke' | null;
 
-export default function DeviceShow({ device }: Props) {
+export default function DeviceShow({ device, clientLogs }: Props) {
     const { can } = useCan();
     const [action, setAction] = useState<Action>(null);
     const [busy, setBusy] = useState(false);
@@ -133,6 +134,7 @@ export default function DeviceShow({ device }: Props) {
                             <p className="mt-1 text-xs text-neutral-500">{formatDate(device.last_heartbeat_at)}</p>
                         </div>
                     </Card>
+                    {license && <ClientLogsCard summary={clientLogs} licenseId={license.id} />}
                     {device.system_info && Object.keys(device.system_info).length > 0 && (
                         <Card>
                             <CardHeader title="اطلاعات سیستم (خام)" />

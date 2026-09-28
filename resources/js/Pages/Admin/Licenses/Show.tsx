@@ -2,6 +2,7 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeftRight, Ban, CalendarClock, Check, Cpu, History, MonitorSmartphone, PauseCircle, PlayCircle, RefreshCw, Sparkles, X } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
+import { ClientLogsCard } from '@/Components/ClientLogsCard';
 import { Badge, StatusBadge } from '@/Components/ui/Badge';
 import { Button } from '@/Components/ui/Button';
 import { Card, CardHeader } from '@/Components/ui/Card';
@@ -16,18 +17,19 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import { EASE_OUT_EXPO, listItem, stagger } from '@/lib/motion';
 import { durationType, licenseStatus } from '@/lib/status';
 import { cn, daysUntil, formatDate, isOnline, timeAgo } from '@/lib/utils';
-import type { DurationType, GameshopModule, License, PageProps, Plan } from '@/types';
+import type { ClientLogSummary, DurationType, GameshopModule, License, PageProps, Plan } from '@/types';
 
 type Props = PageProps<{
     license: License & { plan?: Plan & { modules?: Pick<GameshopModule, 'id' | 'key' | 'title'>[] } };
     entitlements: string[];
     modules: Pick<GameshopModule, 'id' | 'key' | 'title' | 'is_core'>[];
     plans?: Pick<Plan, 'id' | 'code' | 'name'>[];
+    clientLogs?: ClientLogSummary | null;
 }>;
 
 type Action = 'renew' | 'change-plan' | 'suspend' | 'reactivate' | 'revoke' | null;
 
-export default function LicenseShow({ license, entitlements, modules, plans = [] }: Props) {
+export default function LicenseShow({ license, entitlements, modules, plans = [], clientLogs }: Props) {
     const { can } = useCan();
     const [action, setAction] = useState<Action>(null);
     const [busy, setBusy] = useState(false);
@@ -183,6 +185,7 @@ export default function LicenseShow({ license, entitlements, modules, plans = []
 
                 {/* Timeline */}
                 <div className="space-y-6">
+                    <ClientLogsCard summary={clientLogs} licenseId={license.id} />
                     <Card>
                         <CardHeader title="تاریخچه" action={<History className="size-5 text-neutral-500" />} />
                         {license.history?.length ? (

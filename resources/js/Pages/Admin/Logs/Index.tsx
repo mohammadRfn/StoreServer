@@ -38,6 +38,7 @@ export default function LogsIndex({ category, categories, logs, filters }: Props
         level: filters.level ?? '',
     });
     const isClient = category === 'client' || category === 'client_error';
+    const hasFilter = Boolean(values.q || values.from || values.to || values.license_id || values.device_id || values.channel || values.level);
     const setCategory = (c: LogCategory) => router.get(route('admin.logs.index'), { category: c }, { preserveState: false, replace: true });
 
     const exportUrl = route('admin.logs.export', Object.fromEntries(Object.entries(values).filter(([, v]) => v)));
@@ -81,7 +82,7 @@ export default function LogsIndex({ category, categories, logs, filters }: Props
                 </motion.div>
 
                 {logs.data.length === 0 ? (
-                    <EmptyState icon={<ScrollText className="size-6" />} title="لاگی یافت نشد" description="بازه زمانی یا عبارت جستجو را تغییر دهید." />
+                    <EmptyState icon={<ScrollText className="size-6" />} title="لاگی یافت نشد" description={isClient && !hasFilter ? 'هنوز هیچ اپی لاگی به سرور ارسال نکرده است. ارسال خودکار حدود هر ۵ دقیقه و هنگام فعالیت اپ انجام می‌شود.' : 'بازه زمانی، فیلترها یا عبارت جستجو را تغییر دهید.'} />
                 ) : (
                     <ul className="divide-y divide-white/[.05]">
                         {logs.data.map((row, i) => <LogRowItem key={row.id} row={row} category={category} index={i} />)}

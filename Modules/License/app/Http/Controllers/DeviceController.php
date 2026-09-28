@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
+use Modules\Audit\Services\ClientLogSummary;
 use Modules\License\Models\Device;
 
 class DeviceController extends Controller
@@ -32,7 +33,7 @@ class DeviceController extends Controller
         ]);
     }
 
-    public function show(Device $device): InertiaResponse
+    public function show(Request $request, Device $device, ClientLogSummary $clientLogs): InertiaResponse
     {
         $device->load([
             'license.customer', 'license.plan',
@@ -40,6 +41,9 @@ class DeviceController extends Controller
             'moduleUsage' => fn ($q) => $q->orderByDesc('last_used_at'),
         ]);
 
-        return Inertia::render('Admin/Devices/Show', ['device' => $device]);
+        return Inertia::render('Admin/Devices/Show', [
+            'device'     => $device,
+            'clientLogs' => $request->user()?->hasPermission('log.view') ? $clientLogs->forDevice($device->id) : null,
+        ]);
     }
 }

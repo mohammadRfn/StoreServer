@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
+use Modules\Audit\Services\ClientLogSummary;
 use Modules\Customer\Models\Customer;
 use Modules\License\Http\Requests\IssueLicenseRequest;
 use Modules\License\Models\License;
@@ -48,7 +49,7 @@ class LicenseController extends Controller
         ]);
     }
 
-    public function show(License $license): InertiaResponse
+    public function show(Request $request, License $license, ClientLogSummary $clientLogs): InertiaResponse
     {
         $license->load([
             'customer', 'plan.modules:id,key,title', 'device',
@@ -59,6 +60,7 @@ class LicenseController extends Controller
         return Inertia::render('Admin/Licenses/Show', [
             'license'      => $license,
             'entitlements' => $this->entitlements->forLicense($license),
+            'clientLogs'   => $request->user()?->hasPermission('log.view') ? $clientLogs->forLicense($license->id) : null,
             'modules'      => GameshopModule::query()->orderBy('sort_order')->get(['id', 'key', 'title', 'is_core']),
             'plans'        => Plan::query()->orderBy('sort_order')->get(['id', 'code', 'name']),
         ]);

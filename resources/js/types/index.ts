@@ -360,6 +360,21 @@ export interface LogRow {
     [key: string]: unknown;
 }
 
+export interface ClientLogSummary {
+    last_received_at: ISODate | null;
+    errors_24h: number;
+    security_24h: number;
+    recent: {
+        id: ID;
+        level: string;
+        channel: string;
+        action: string | null;
+        description: string | null;
+        occurred_at: ISODate | null;
+        created_at: ISODate;
+    }[];
+}
+
 /* ------------------------------ Dashboard -------------------------------- */
 
 export interface DashboardStats {

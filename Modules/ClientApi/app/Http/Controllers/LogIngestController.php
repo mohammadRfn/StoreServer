@@ -7,6 +7,7 @@ namespace Modules\ClientApi\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Modules\Audit\Services\AlertFeed;
 use Modules\Audit\Services\ClientChainVerifier;
 use Modules\Audit\Services\ClientLogIngestor;
 use Modules\ClientApi\Http\Requests\IngestLogsRequest;
@@ -19,6 +20,7 @@ class LogIngestController extends Controller
     public function __construct(
         private readonly ClientLogIngestor $ingestor,
         private readonly ClientChainVerifier $chains,
+        private readonly AlertFeed $alerts,
     ) {}
 
     // POST /api/v1/logs/ingest
@@ -38,6 +40,7 @@ class LogIngestController extends Controller
         if ($device !== null) {
             try {
                 $this->chains->verifyDevice((int) $device->getKey());
+                $this->alerts->resolve((int) $device->getKey(), ['client_logs_silent']); // دوباره لاگ فرستاد
             } catch (\Throwable $e) {
                 report($e);
             }

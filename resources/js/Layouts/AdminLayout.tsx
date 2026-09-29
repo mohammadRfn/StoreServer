@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ToastProvider } from '@/Components/ui/Toast';
+import { AlertsBell } from '@/Components/AlertsBell';
 import { Avatar } from '@/Components/ui/Avatar';
 import { useCan } from '@/Hooks/useCan';
 import { EASE_OUT_EXPO, pageTransition } from '@/lib/motion';
@@ -294,6 +295,7 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
 
             <div className="flex-1" />
 
+            <AlertsBell />
             <Link href={route('admin.activation-requests.index')} className="relative rounded-lg p-2 text-neutral-400 transition hover:bg-white/10 hover:text-white" title="درخواست‌های فعال‌سازی">
                 <Bell className="size-5" />
             </Link>

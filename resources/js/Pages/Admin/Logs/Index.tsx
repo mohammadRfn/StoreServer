@@ -20,7 +20,7 @@ import { logCategory, type Tone } from '@/lib/status';
 import { cn, formatDate, timeAgo } from '@/lib/utils';
 import type { LogCategory, LogRow, PageProps, Paginated } from '@/types';
 
-type Props = PageProps<{ category: LogCategory; categories: LogCategory[]; logs: Paginated<LogRow>; filters: { q?: string; from?: string; to?: string; category?: string; license_id?: string; device_id?: string; channel?: string; level?: string } }>;
+type Props = PageProps<{ category: LogCategory; categories: LogCategory[]; logs: Paginated<LogRow>; filters: { q?: string; from?: string; to?: string; category?: string; license_id?: string; device_id?: string; channel?: string; level?: string; unacked?: string } }>;
 
 const clientChannels = ['http', 'model', 'auth', 'security', 'job', 'console', 'error', 'system', 'business', 'sync'];
 const clientLevels = ['debug', 'info', 'notice', 'warning', 'error', 'critical', 'alert', 'emergency'];
@@ -36,6 +36,7 @@ export default function LogsIndex({ category, categories, logs, filters }: Props
         device_id: filters.device_id ?? '',
         channel: filters.channel ?? '',
         level: filters.level ?? '',
+        unacked: filters.unacked ?? '',
     });
     const isClient = category === 'client' || category === 'client_error';
     const hasFilter = Boolean(values.q || values.from || values.to || values.license_id || values.device_id || values.channel || values.level);
@@ -71,6 +72,11 @@ export default function LogsIndex({ category, categories, logs, filters }: Props
                                     {clientLevels.map((l) => <option key={l} value={l}>{l}</option>)}
                                 </Select>
                             </>
+                        )}
+                        {category === 'security' && (
+                            <Button variant={values.unacked ? 'primary' : 'outline'} size="sm" onClick={() => set('unacked', values.unacked ? '' : '1')}>
+                                فقط بررسی‌نشده
+                            </Button>
                         )}
                         <Input type="date" value={values.from} onChange={(e) => set('from', e.target.value)} dir="ltr" className="w-40" />
                         <span className="text-xs text-neutral-500">تا</span>

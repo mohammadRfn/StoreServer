@@ -28,6 +28,7 @@ class Device extends Model
 
     protected $casts = [
         'system_info'       => 'array',
+        'log_health'        => 'array',
         'ram_mb'            => 'integer',
         'app_version_code'  => 'integer',
         'first_seen_at'     => 'datetime',

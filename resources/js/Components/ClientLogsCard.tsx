@@ -39,6 +39,12 @@ export function ClientLogsCard({ summary, licenseId }: { summary?: ClientLogSumm
                 <Stat label="امنیتی (۲۴ ساعت)" value={formatNumber(summary.security_24h)} tone={summary.security_24h > 0 ? 'warning' : 'success'} />
             </div>
 
+            {summary.app_queue && (
+                <p className={cn('mb-4 text-xs', summary.app_queue.dead > 0 ? 'text-red-300' : 'text-neutral-500')}>
+                    صف ارسال اپ: {formatNumber(summary.app_queue.pending)} در انتظار · {formatNumber(summary.app_queue.failed)} ناموفق · {formatNumber(summary.app_queue.dead)} متوقف‌شده (گزارش {timeAgo(summary.app_queue.reported_at)})
+                </p>
+            )}
+
             {summary.chain && summary.chain.status !== 'ok' && (
                 <div className={cn('mb-4 rounded-xl p-3 text-xs ring-1', toneClasses[summary.chain.status === 'broken' ? 'danger' : 'warning'])}>
                     {summary.chain.status === 'broken'

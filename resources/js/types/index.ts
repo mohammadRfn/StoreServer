@@ -363,6 +363,7 @@ export interface LogRow {
 export interface ClientLogSummary {
     last_received_at: ISODate | null;
     chain: { status: 'ok' | 'gap' | 'broken'; reason: string | null; broken_sequence: number | null; missing_from: number | null } | null;
+    app_queue: { pending: number; failed: number; dead: number; oldest_pending: ISODate | null; last_sequence: number; reported_at: ISODate } | null;
     errors_24h: number;
     security_24h: number;
     recent: {
@@ -400,10 +401,27 @@ export interface FlashProps {
     plain_codes?: string[] | null;
 }
 
+export interface AlertItem {
+    id: ID;
+    type: string;
+    severity: string;
+    message: string;
+    created_at: ISODate;
+    license_uuid: string | null;
+    hostname: string | null;
+}
+
+export interface AlertsSummary {
+    count: number;
+    critical: number;
+    items: AlertItem[];
+}
+
 export interface SharedProps {
     app: { name: string; version?: string; env?: string };
     auth: { user: AuthUser | null };
     flash: FlashProps;
+    alerts?: AlertsSummary | null;
     ziggy?: unknown;
     errors: Record<string, string>;
     [key: string]: unknown;

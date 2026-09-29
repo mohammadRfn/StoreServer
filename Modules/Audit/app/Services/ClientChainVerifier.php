@@ -19,6 +19,7 @@ class ClientChainVerifier
     public function __construct(
         private readonly AuditLogger $audit,
         private readonly ServerSettings $settings,
+        private readonly AlertFeed $alerts,
     ) {}
 
     public function verifyDevice(int $deviceId): ClientChainState
@@ -107,12 +108,19 @@ class ClientChainVerifier
     public function reset(int $deviceId): void
     {
         ClientChainState::query()->whereKey($deviceId)->delete();
+        $this->alerts->resolve($deviceId, ['chain_broken', 'chain_gap']);
     }
 
     private function applyGap(ClientChainState $state, ?int $missingFrom, Carbon $now): void
     {
         if ($missingFrom === null) {
+            $wasGap = $state->status === 'gap';
+
             $state->fill(['status' => 'ok', 'reason' => null, 'missing_from' => null, 'gap_since' => null, 'alerted_at' => null]);
+
+            if ($wasGap) {
+                $this->alerts->resolve((int) $state->device_id, ['chain_gap']);
+            }
 
             return;
         }

@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Carbon;
 use Modules\Audit\Services\AuditLogger;
+use Modules\Audit\Services\ClientLogHealth;
 use Modules\Base\Services\ServerSettings;
 use Modules\Base\Support\SemVer;
 use Modules\ClientApi\Support\ApiResponse;
@@ -28,6 +29,7 @@ class HeartbeatController extends Controller
         private readonly EntitlementService $entitlements,
         private readonly PatchDeliveryService $patches,
         private readonly AuditLogger $audit,
+        private readonly ClientLogHealth $logHealth,
     ) {}
 
     // POST /api/v1/heartbeat
@@ -46,6 +48,12 @@ class HeartbeatController extends Controller
             'stats.modules'                => ['sometimes', 'array'],
             'stats.modules.*.hits'         => ['sometimes', 'integer', 'min:0'],
             'stats.modules.*.last_used_at' => ['sometimes', 'date'],
+            'stats.audit_log'                => ['sometimes', 'nullable', 'array'],
+            'stats.audit_log.pending'        => ['sometimes', 'integer', 'min:0'],
+            'stats.audit_log.failed'         => ['sometimes', 'integer', 'min:0'],
+            'stats.audit_log.dead'           => ['sometimes', 'integer', 'min:0'],
+            'stats.audit_log.oldest_pending' => ['sometimes', 'nullable', 'date'],
+            'stats.audit_log.last_sequence'  => ['sometimes', 'integer', 'min:0'],
         ]);
 
         // انقضای تنبل: اگر تاریخ گذشته باشد وضعیت به expired تغییر می‌کند
@@ -64,6 +72,10 @@ class HeartbeatController extends Controller
             'last_ip'           => $request->ip(),
             'last_heartbeat_at' => Carbon::now('UTC'),
         ])->save();
+
+        if (isset($data['stats']['audit_log']) && is_array($data['stats']['audit_log'])) {
+            $this->logHealth->record($license, $device, $data['stats']['audit_log']);
+        }
 
         if ($previousVersion !== $data['app_version']) {
             $this->audit->device($device, 'device.version_changed', 'تغییر نسخه اپ', [

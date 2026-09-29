@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
+use Modules\Audit\Services\AlertFeed;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -58,6 +59,21 @@ class HandleInertiaRequests extends Middleware
                     'is_super_admin' => $user->isSuperAdmin(),
                 ] : null,
             ],
+
+            // هشدارهای زنگوله‌ی بالای پنل؛ خطا در آن هرگز نباید صفحه را خراب کند
+            'alerts' => function () use ($user) {
+                if (! $user || ! $user->is_active || ! $user->hasPermission('log.view')) {
+                    return null;
+                }
+
+                try {
+                    return app(AlertFeed::class)->summary();
+                } catch (\Throwable $e) {
+                    report($e);
+
+                    return null;
+                }
+            },
 
             'flash' => fn () => [
                 'success'     => $request->session()->get('success'),

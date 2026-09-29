@@ -46,7 +46,7 @@ class LogController extends Controller
             'category'   => $category,
             'categories' => array_keys($this->categories),
             'logs'       => $logs,
-            'filters'    => $request->only('q', 'from', 'to', 'category', 'license_id', 'device_id', 'channel', 'level'),
+            'filters'    => $request->only('q', 'from', 'to', 'category', 'license_id', 'device_id', 'channel', 'level', 'unacked'),
         ]);
     }
 
@@ -90,6 +90,10 @@ class LogController extends Controller
 
         if ($model === ClientAuditLog::class) {
             $this->applyClientFilters($query, $category, $request);
+        }
+
+        if ($category === 'security' && $request->boolean('unacked')) {
+            $query->whereNull('acknowledged_at');
         }
 
         $query->when($request->filled('from'), fn(Builder $q) => $q->where('created_at', '>=', $request->date('from')))

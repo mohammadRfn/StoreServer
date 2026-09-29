@@ -42,9 +42,14 @@ class ClientLogSummary
             ->orderByRaw("FIELD(status, 'broken', 'gap', 'ok')")
             ->first(['status', 'reason', 'broken_sequence', 'missing_from']);
 
+        $health = \Modules\License\Models\Device::query()
+            ->when($column === 'device_id', fn ($q) => $q->whereKey($id), fn ($q) => $q->where('license_id', $id))
+            ->value('log_health');
+
         return [
             'last_received_at' => $last?->created_at?->toIso8601String(),
             'chain'            => $chain?->only(['status', 'reason', 'broken_sequence', 'missing_from']),
+            'app_queue'        => $health,
             'errors_24h'       => $base()->where('created_at', '>=', $since)->where($isError)->count(),
             'security_24h'     => $base()->where('created_at', '>=', $since)->where('channel', 'security')->count(),
             'recent'           => $base()

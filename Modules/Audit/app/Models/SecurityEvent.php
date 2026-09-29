@@ -21,8 +21,9 @@ class SecurityEvent extends Model
     ];
 
     protected $casts = [
-        'context'    => 'array',
-        'created_at' => 'datetime',
+        'context'         => 'array',
+        'created_at'      => 'datetime',
+        'acknowledged_at' => 'datetime',
     ];
 
     public function license(): BelongsTo

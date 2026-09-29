@@ -16,7 +16,21 @@ class VerifyClientChainsCommand extends Command
 
     public function handle(ClientChainVerifier $verifier): int
     {
-        $only = $this->option('device') !== null ? (int) $this->option('device') : null;
+        $device = $this->option('device');
+
+        if ($device !== null && (! ctype_digit((string) $device) || (int) $device < 1)) {
+            $this->error('مقدار --device باید شناسه‌ی عددی دستگاه باشد (مثلاً --device=11).');
+
+            return self::FAILURE;
+        }
+
+        $only = $device !== null ? (int) $device : null;
+
+        if ($only !== null && ! ClientAuditLog::query()->where('device_id', $only)->exists()) {
+            $this->error("برای دستگاه {$only} هیچ لاگی دریافت نشده است.");
+
+            return self::FAILURE;
+        }
 
         if ($this->option('reset')) {
             if ($only === null) {

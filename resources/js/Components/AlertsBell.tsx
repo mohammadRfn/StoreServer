@@ -10,6 +10,7 @@ const typeLabel: Record<string, string> = {
     chain_gap: 'رکورد گمشده در لاگ اپ',
     client_logs_silent: 'دستگاه فعال ولی بدون لاگ',
     client_logs_stuck: 'صف ارسال لاگ اپ گیر کرده',
+    client_logs_flood: 'سقف روزانه‌ی لاگ اپ پر شد',
     fingerprint_mismatch: 'استفاده از لایسنس روی دستگاه دیگر',
 };
 

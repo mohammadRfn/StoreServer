@@ -62,6 +62,14 @@ class BaseServiceProvider extends ServiceProvider
             ];
         });
 
+        // ارسال لاگ: حد به ازای لایسنس (پس از میدلور license.token که لایسنس را در request می‌گذارد)
+        RateLimiter::for('client-logs', function (Request $request) {
+            $license = $request->attributes->get('license');
+            $key = $license ? 'license:' . $license->getKey() : 'ip:' . $request->ip();
+
+            return Limit::perMinute(20)->by('client-logs:' . $key);
+        });
+
         RateLimiter::for('admin-login', function (Request $request) {
             $email = (string) $request->input('email');
 

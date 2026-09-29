@@ -36,7 +36,7 @@ Route::prefix('v1')
         });
 
         // ارسال لاگ ماژول AuditLog گیم‌استور (بدنه ممکن است gzip باشد؛ ابتدا رمزگشایی می‌شود)
-        Route::middleware(['gzip.decode', 'client.sig', 'license.token'])->group(function (): void {
+        Route::middleware(['gzip.decode', 'client.sig', 'license.token', 'throttle:client-logs'])->group(function (): void {
             Route::post('/logs/ingest', [LogIngestController::class, 'ingest'])->name('api.v1.logs.ingest');
             Route::post('/logs/ping', [LogIngestController::class, 'ping'])->name('api.v1.logs.ping');
         });

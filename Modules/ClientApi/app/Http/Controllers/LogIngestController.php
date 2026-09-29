@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\Audit\Services\AlertFeed;
 use Modules\Audit\Services\ClientChainVerifier;
+use Modules\Audit\Services\ClientLogQuota;
 use Modules\Audit\Services\ClientLogIngestor;
 use Modules\ClientApi\Http\Requests\IngestLogsRequest;
 use Modules\ClientApi\Support\ApiResponse;
@@ -21,6 +22,7 @@ class LogIngestController extends Controller
         private readonly ClientLogIngestor $ingestor,
         private readonly ClientChainVerifier $chains,
         private readonly AlertFeed $alerts,
+        private readonly ClientLogQuota $quota,
     ) {}
 
     // POST /api/v1/logs/ingest
@@ -30,6 +32,10 @@ class LogIngestController extends Controller
         $license = $request->attributes->get('license');
         /** @var Device|null $device */
         $device = $request->attributes->get('device');
+
+        if ($this->quota->exceeded($license, $device, (string) $request->input('batch.uuid'), count((array) $request->input('logs', [])))) {
+            return ApiResponse::error('QUOTA_EXCEEDED', 'سقف روزانه‌ی ارسال لاگ برای این لایسنس پر شده است.', 429);
+        }
 
         $result = $this->ingestor->ingest($license, $device, $request->validated(), [
             'ip'            => $request->ip(),

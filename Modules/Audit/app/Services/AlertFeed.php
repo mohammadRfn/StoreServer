@@ -17,6 +17,7 @@ class AlertFeed
         'chain_gap',
         'client_logs_silent',
         'client_logs_stuck',
+        'client_logs_flood',
         'fingerprint_mismatch',
     ];
 

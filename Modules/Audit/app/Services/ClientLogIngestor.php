@@ -138,11 +138,11 @@ class ClientLogIngestor
                 'duration_ms'    => isset($req['duration_ms']) ? (int) $req['duration_ms'] : null,
                 'memory_kb'      => isset($req['memory_kb']) ? (int) $req['memory_kb'] : null,
 
-                'old_values'     => isset($changes['old']) ? json_encode($changes['old'], JSON_UNESCAPED_UNICODE) : null,
-                'new_values'     => isset($changes['new']) ? json_encode($changes['new'], JSON_UNESCAPED_UNICODE) : null,
-                'changed_keys'   => isset($changes['keys']) ? json_encode($changes['keys'], JSON_UNESCAPED_UNICODE) : null,
-                'context'        => json_encode($log['context'] ?? [], JSON_UNESCAPED_UNICODE),
-                'tags'           => json_encode($log['tags'] ?? [], JSON_UNESCAPED_UNICODE),
+                'old_values'     => isset($changes['old']) ? $this->capJson($changes['old']) : null,
+                'new_values'     => isset($changes['new']) ? $this->capJson($changes['new']) : null,
+                'changed_keys'   => isset($changes['keys']) ? $this->capJson($changes['keys'], 8_000) : null,
+                'context'        => $this->capJson($log['context'] ?? []),
+                'tags'           => $this->capJson($log['tags'] ?? [], 2_000),
 
                 'environment'    => isset($source['environment']) ? mb_substr((string) $source['environment'], 0, 32) : null,
                 'app_version'    => isset($source['app_version']) ? mb_substr((string) $source['app_version'], 0, 32) : null,
@@ -184,5 +184,29 @@ class ClientLogIngestor
         }
 
         return [$accepted, $rejected];
+    }
+
+    /**
+     * JSON با سقف حجم. مقدار بزرگ‌تر با یک نشانگر JSON معتبر جایگزین می‌شود
+     * (برش وسط JSON آن را نامعتبر می‌کرد و ستون JSON درج را رد می‌کرد).
+     */
+    private function capJson(mixed $value, int $maxBytes = 32_000): string
+    {
+        $flags = JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR;
+        $json = json_encode($value, $flags);
+
+        if ($json === false) {
+            return '{"_truncated":true,"_reason":"encode_failed"}';
+        }
+
+        if (strlen($json) <= $maxBytes) {
+            return $json;
+        }
+
+        return (string) json_encode([
+            '_truncated'      => true,
+            '_original_bytes' => strlen($json),
+            '_preview'        => mb_strcut($json, 0, 500),
+        ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
     }
 }

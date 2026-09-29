@@ -45,7 +45,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'gzip.decode'   => DecodeGzipPayload::class,
         ]);
 
-        $middleware->trustProxies(at: ['127.0.0.1', '::1']);
+        // پشت ingress/load balancer مقدار TRUSTED_PROXIES را ست کن (لیست IP/CIDR با کاما، یا * )
+        $middleware->trustProxies(at: env('TRUSTED_PROXIES', '127.0.0.1,::1'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // ثبت خطاها در جدول error_logs علاوه بر لاگ پیش‌فرض

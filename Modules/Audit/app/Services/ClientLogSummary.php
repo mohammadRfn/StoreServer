@@ -37,8 +37,14 @@ class ClientLogSummary
 
         $last = $base()->latest('id')->first(['id', 'created_at']);
 
+        $chain = \Modules\Audit\Models\ClientChainState::query()
+            ->where($column === 'device_id' ? 'device_id' : 'license_id', $id)
+            ->orderByRaw("FIELD(status, 'broken', 'gap', 'ok')")
+            ->first(['status', 'reason', 'broken_sequence', 'missing_from']);
+
         return [
             'last_received_at' => $last?->created_at?->toIso8601String(),
+            'chain'            => $chain?->only(['status', 'reason', 'broken_sequence', 'missing_from']),
             'errors_24h'       => $base()->where('created_at', '>=', $since)->where($isError)->count(),
             'security_24h'     => $base()->where('created_at', '>=', $since)->where('channel', 'security')->count(),
             'recent'           => $base()

@@ -31,3 +31,13 @@ Schedule::command('license:expire-codes')
 Schedule::command('logs:prune')
     ->dailyAt('01:00')
     ->withoutOverlapping();
+
+// بررسی پیوستگی زنجیره‌ی هش لاگ اپ‌ها (هر ۱۵ دقیقه)
+Schedule::command('client-logs:verify')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping();
+
+// دستگاه‌هایی که زنده‌اند ولی لاگ نمی‌فرستند (هر ساعت)
+Schedule::command('client-logs:check-silent')
+    ->hourly()
+    ->withoutOverlapping();

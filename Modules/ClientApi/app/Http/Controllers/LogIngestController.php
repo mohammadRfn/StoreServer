@@ -7,6 +7,7 @@ namespace Modules\ClientApi\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Modules\Audit\Services\ClientChainVerifier;
 use Modules\Audit\Services\ClientLogIngestor;
 use Modules\ClientApi\Http\Requests\IngestLogsRequest;
 use Modules\ClientApi\Support\ApiResponse;
@@ -15,7 +16,10 @@ use Modules\License\Models\License;
 
 class LogIngestController extends Controller
 {
-    public function __construct(private readonly ClientLogIngestor $ingestor) {}
+    public function __construct(
+        private readonly ClientLogIngestor $ingestor,
+        private readonly ClientChainVerifier $chains,
+    ) {}
 
     // POST /api/v1/logs/ingest
     public function ingest(IngestLogsRequest $request): JsonResponse
@@ -29,6 +33,15 @@ class LogIngestController extends Controller
             'ip'            => $request->ip(),
             'payload_bytes' => (int) $request->attributes->get('raw_payload_bytes', strlen((string) $request->getContent())),
         ]);
+
+        // تشخیص فوری fork/شکست زنجیره؛ خطا هرگز نباید ارسال لاگ را خراب کند
+        if ($device !== null) {
+            try {
+                $this->chains->verifyDevice((int) $device->getKey());
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
 
         return ApiResponse::success([
             'batch_id' => $result['batch_id'],

@@ -362,6 +362,7 @@ export interface LogRow {
 
 export interface ClientLogSummary {
     last_received_at: ISODate | null;
+    chain: { status: 'ok' | 'gap' | 'broken'; reason: string | null; broken_sequence: number | null; missing_from: number | null } | null;
     errors_24h: number;
     security_24h: number;
     recent: {

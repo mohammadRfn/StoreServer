@@ -39,6 +39,14 @@ export function ClientLogsCard({ summary, licenseId }: { summary?: ClientLogSumm
                 <Stat label="امنیتی (۲۴ ساعت)" value={formatNumber(summary.security_24h)} tone={summary.security_24h > 0 ? 'warning' : 'success'} />
             </div>
 
+            {summary.chain && summary.chain.status !== 'ok' && (
+                <div className={cn('mb-4 rounded-xl p-3 text-xs ring-1', toneClasses[summary.chain.status === 'broken' ? 'danger' : 'warning'])}>
+                    {summary.chain.status === 'broken'
+                        ? `زنجیره‌ی هش لاگ شکسته شده (${summary.chain.reason === 'fork' ? 'دو رکورد با sequence یکسان؛ بازسازی یا restore دیتابیس اپ' : 'ناسازگاری پیوند هش'} — sequence ${summary.chain.broken_sequence}). ممکن است دیتابیس اپ دستکاری شده باشد.`
+                        : `رکورد(های) گمشده در زنجیره از sequence ${summary.chain.missing_from} به بعد؛ اپ هنوز آن‌ها را ارسال نکرده است.`}
+                </div>
+            )}
+
             {summary.recent.length === 0 ? (
                 <p className="rounded-xl border border-dashed border-white/10 p-4 text-center text-sm text-neutral-500">
                     {summary.last_received_at ? 'خطا یا رویداد امنیتی‌ای ثبت نشده است.' : 'این اپ هنوز هیچ لاگی به سرور ارسال نکرده است.'}

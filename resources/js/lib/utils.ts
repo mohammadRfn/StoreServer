@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { jalaliDateTime, jalaliFull } from '@/lib/jalali';
 
 export function cn(...inputs: ClassValue[]): string {
     return twMerge(clsx(inputs));
@@ -23,14 +24,8 @@ export function formatPrice(irr: number | null | undefined): string {
 
 export function formatDate(value: string | null | undefined, withTime = true): string {
     if (!value) return '—';
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return value;
-    return new Intl.DateTimeFormat('fa-IR', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {}),
-    }).format(d);
+    const text = withTime ? jalaliDateTime(value) : jalaliFull(value);
+    return text ?? value;
 }
 
 export function timeAgo(value: string | null | undefined): string {

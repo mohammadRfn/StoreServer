@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Audit\Http\Controllers;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -81,6 +82,29 @@ class LogController extends Controller
         }, $fileName, ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
+    /**
+     * رشتهٔ «YYYY-MM-DD» (روز تقویمی تهران) را به لحظهٔ UTC ابتدا/انتهای همان روز تبدیل می‌کند.
+     * ورودی نامعتبر → null (فیلتر نادیده گرفته می‌شود).
+     */
+    private function tehranDayBoundary(mixed $value, bool $endOfDay): ?CarbonImmutable
+    {
+        if (!is_string($value) || preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) !== 1) {
+            return null;
+        }
+
+        try {
+            $day = CarbonImmutable::createFromFormat('!Y-m-d', $value, 'Asia/Tehran');
+        } catch (\Throwable) {
+            return null;
+        }
+
+        if ($day === false) {
+            return null;
+        }
+
+        return ($endOfDay ? $day->endOfDay() : $day->startOfDay())->utc();
+    }
+
     private function query(string $category, Request $request): Builder
     {
         $model = $this->categories[$category] ?? AuditLog::class;
@@ -96,8 +120,12 @@ class LogController extends Controller
             $query->whereNull('acknowledged_at');
         }
 
-        $query->when($request->filled('from'), fn(Builder $q) => $q->where('created_at', '>=', $request->date('from')))
-            ->when($request->filled('to'), fn(Builder $q) => $q->where('created_at', '<=', $request->date('to')))
+        // بازهٔ تاریخ بر اساس «روز تهران» است: from = ابتدای روز، to = انتهای روز (شامل کل روز آخر)
+        $from = $this->tehranDayBoundary($request->input('from'), endOfDay: false);
+        $to = $this->tehranDayBoundary($request->input('to'), endOfDay: true);
+
+        $query->when($from !== null, fn(Builder $q) => $q->where('created_at', '>=', $from))
+            ->when($to !== null, fn(Builder $q) => $q->where('created_at', '<=', $to))
             ->orderByDesc('id');
 
         $term = $request->string('q')->toString();

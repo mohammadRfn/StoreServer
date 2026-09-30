@@ -8,7 +8,8 @@ import { Card, CardHeader } from '@/Components/ui/Card';
 import { ConfirmDialog } from '@/Components/ui/ConfirmDialog';
 import { CopyButton, Mono } from '@/Components/ui/CopyButton';
 import { DataTable, type Column } from '@/Components/ui/DataTable';
-import { Field, Input } from '@/Components/ui/Field';
+import { Field } from '@/Components/ui/Field';
+import { JalaliDatePicker } from '@/Components/ui/JalaliDatePicker';
 import { KeyValue } from '@/Components/ui/KeyValue';
 import { Modal } from '@/Components/ui/Modal';
 import { PageHeader } from '@/Components/ui/PageHeader';
@@ -145,12 +146,12 @@ function Ring({ pct }: { pct: number }) {
 }
 
 function ScheduleModal({ open, onClose, patch }: { open: boolean; onClose: () => void; patch: Patch }) {
-    const form = useForm({ scheduled_at: patch.scheduled_at ? patch.scheduled_at.slice(0, 16) : '' });
-    const submit = (e: FormEvent) => { e.preventDefault(); form.transform((d) => ({ scheduled_at: new Date(d.scheduled_at).toISOString() })); form.post(route('admin.patches.schedule', patch.patch_code), { preserveScroll: true, onSuccess: onClose }); };
+    const form = useForm({ scheduled_at: patch.scheduled_at ?? '' }); // ISO (UTC)؛ انتخابگر ساعت را به وقت تهران نشان می‌دهد
+    const submit = (e: FormEvent) => { e.preventDefault(); form.post(route('admin.patches.schedule', patch.patch_code), { preserveScroll: true, onSuccess: onClose }); };
     return (
-        <Modal open={open} onClose={onClose} size="sm" title="زمان‌بندی انتشار" description="پچ در زمان تعیین‌شده (بر اساس ساعت سرور، UTC) به‌صورت خودکار منتشر می‌شود."
+        <Modal open={open} onClose={onClose} size="sm" title="زمان‌بندی انتشار" description="پچ در زمان تعیین‌شده (به وقت تهران) به‌صورت خودکار منتشر می‌شود."
             footer={<><Button variant="ghost" onClick={onClose}>انصراف</Button><Button form="sched-form" type="submit" loading={form.processing} icon={<CalendarClock className="size-4" />}>ثبت زمان</Button></>}>
-            <form id="sched-form" onSubmit={submit} className="py-2"><Field label="زمان انتشار" required error={form.errors.scheduled_at}><Input type="datetime-local" value={form.data.scheduled_at} onChange={(e) => form.setData('scheduled_at', e.target.value)} dir="ltr" min={new Date().toISOString().slice(0, 16)} /></Field></form>
+            <form id="sched-form" onSubmit={submit} className="py-2"><Field label="زمان انتشار" required error={form.errors.scheduled_at}><JalaliDatePicker withTime disablePast clearable={false} value={form.data.scheduled_at} onChange={(v) => form.setData('scheduled_at', v)} placeholder="انتخاب تاریخ و ساعت" invalid={!!form.errors.scheduled_at} /></Field></form>
         </Modal>
     );
 }

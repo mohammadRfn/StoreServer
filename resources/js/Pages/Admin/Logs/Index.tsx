@@ -8,6 +8,8 @@ import { Card } from '@/Components/ui/Card';
 import { Mono } from '@/Components/ui/CopyButton';
 import { EmptyState } from '@/Components/ui/EmptyState';
 import { Input, Select } from '@/Components/ui/Field';
+import { JalaliDatePicker } from '@/Components/ui/JalaliDatePicker';
+import { JDate } from '@/Components/ui/JDate';
 import { PageHeader } from '@/Components/ui/PageHeader';
 import { Pagination } from '@/Components/ui/Pagination';
 import { SearchInput } from '@/Components/ui/SearchInput';
@@ -17,7 +19,7 @@ import { useDebouncedFilters } from '@/Hooks/useDebouncedFilters';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { EASE_OUT_EXPO, fadeUp } from '@/lib/motion';
 import { logCategory, type Tone } from '@/lib/status';
-import { cn, formatDate, timeAgo } from '@/lib/utils';
+import { cn, formatDate } from '@/lib/utils';
 import type { LogCategory, LogRow, PageProps, Paginated } from '@/types';
 
 type Props = PageProps<{ category: LogCategory; categories: LogCategory[]; logs: Paginated<LogRow>; filters: { q?: string; from?: string; to?: string; category?: string; license_id?: string; device_id?: string; channel?: string; level?: string; unacked?: string } }>;
@@ -78,9 +80,9 @@ export default function LogsIndex({ category, categories, logs, filters }: Props
                                 فقط بررسی‌نشده
                             </Button>
                         )}
-                        <Input type="date" value={values.from} onChange={(e) => set('from', e.target.value)} dir="ltr" className="w-40" />
+                        <JalaliDatePicker value={values.from} onChange={(v) => set('from', v)} placeholder="از تاریخ" size="sm" className="w-44" />
                         <span className="text-xs text-neutral-500">تا</span>
-                        <Input type="date" value={values.to} onChange={(e) => set('to', e.target.value)} dir="ltr" className="w-40" />
+                        <JalaliDatePicker value={values.to} onChange={(v) => set('to', v)} placeholder="تا تاریخ" size="sm" className="w-44" />
                         {isDirty && (values.q || values.from || values.to || values.license_id || values.device_id || values.channel || values.level) && (
                             <Button variant="ghost" size="sm" icon={<RotateCcw className="size-3.5" />} onClick={() => { (['q', 'from', 'to', 'license_id', 'device_id', 'channel', 'level'] as const).forEach((k) => set(k, '')); }} />
                         )}
@@ -144,7 +146,7 @@ function LogRowItem({ row, category, index }: { row: LogRow; category: LogCatego
                     <div className="flex flex-wrap items-center gap-2"><p className="truncate text-sm text-neutral-100">{meta.title}</p>{meta.tag && <Badge size="sm" tone={meta.tone}><span className="font-mono">{meta.tag}</span></Badge>}</div>
                     {meta.subtitle && <p className="mt-0.5 truncate text-xs text-neutral-500" dir="auto">{meta.subtitle}</p>}
                 </div>
-                <div className="shrink-0 text-left"><p className="text-xs text-neutral-400">{timeAgo(row.created_at)}</p><p className="text-[10px] text-neutral-600">{formatDate(row.created_at)}</p></div>
+                <div className="shrink-0 text-left"><p className="text-xs text-neutral-400"><JDate value={row.created_at} relative /></p><p className="text-[10px] text-neutral-600">{formatDate(row.created_at)}</p></div>
                 <motion.span animate={{ rotate: open ? 180 : 0 }} className="mt-1 text-neutral-600"><ChevronDown className="size-4" /></motion.span>
             </button>
             <AnimatePresence initial={false}>

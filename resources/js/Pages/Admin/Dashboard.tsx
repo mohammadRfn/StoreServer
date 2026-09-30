@@ -9,6 +9,7 @@ import { EmptyState } from '@/Components/ui/EmptyState';
 import { PageHeader } from '@/Components/ui/PageHeader';
 import { StatCard } from '@/Components/ui/StatCard';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { tehranHour } from '@/lib/jalali';
 import { EASE_OUT_EXPO, listItem, stagger } from '@/lib/motion';
 import { activationStatus, licenseStatus } from '@/lib/status';
 import { formatNumber, timeAgo } from '@/lib/utils';
@@ -30,7 +31,7 @@ const emptyStats: DashboardStats = {
 };
 
 export default function Dashboard({ stats = emptyStats, auth }: Props) {
-    const hour = new Date().getHours();
+    const hour = tehranHour();
     const greeting = hour < 12 ? 'صبح بخیر' : hour < 18 ? 'ظهر بخیر' : 'شب بخیر';
 
     return (

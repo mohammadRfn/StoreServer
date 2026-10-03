@@ -64,7 +64,7 @@ return [
         'signed_link_ttl'       => 15,                                 // دقیقه (قابل بازنویسی از تنظیمات سرور)
         'max_failures_per_device' => 3,
         'max_upload_mb'         => (int) env('PATCH_MAX_UPLOAD_MB', 512),
-        'allowed_roots'         => ['app', 'resources', 'public', 'config', 'routes', 'database', 'lang'],
+        'allowed_roots'         => ['app', 'resources', 'public', 'config', 'routes', 'database', 'lang', 'Modules'],
         'forbidden_patterns'    => ['..', './', '\\', ':'],
     ],
 

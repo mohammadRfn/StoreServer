@@ -268,8 +268,8 @@ export interface PatchFile {
     patch_id: ID;
     path: string;
     action: 'add' | 'update' | 'delete' | string;
-    sha256: string;
-    size: number;
+    sha256?: string | null;
+    size?: number | null;
 }
 
 export interface PatchScript {

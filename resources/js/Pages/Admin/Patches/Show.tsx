@@ -41,7 +41,7 @@ export default function PatchShow({ patch }: Props) {
         { key: 'path', header: 'مسیر', render: (f) => <Mono>{f.path}</Mono> },
         { key: 'action', header: 'عمل', render: (f) => <Badge size="sm" tone={f.action === 'delete' ? 'danger' : f.action === 'add' ? 'success' : 'info'}>{f.action}</Badge> },
         { key: 'size', header: 'حجم', hideBelow: 'md', render: (f) => <span className="text-xs text-neutral-400">{formatBytes(f.size)}</span> },
-        { key: 'sha', header: 'SHA-256', hideBelow: 'lg', render: (f) => <Mono className="text-neutral-500">{f.sha256.slice(0, 16)}…</Mono> },
+        { key: 'sha', header: 'SHA-256', hideBelow: 'lg', render: (f) => <Mono className="text-neutral-500">{f.sha256 ? `${f.sha256.slice(0, 16)}…` : '—'}</Mono> },
     ];
     const devCols: Column<DevicePatchStatus>[] = [
         { key: 'dev', header: 'دستگاه', render: (s) => <Link href={route('admin.devices.show', s.device_id)} onClick={(e) => e.stopPropagation()} className="hover:text-amber-300"><p className="text-sm text-white">{s.device?.hostname ?? '—'}</p><Mono className="text-neutral-500">{s.device?.fingerprint.slice(0, 14)}</Mono></Link> },

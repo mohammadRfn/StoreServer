@@ -41,7 +41,16 @@ class PatchController extends Controller
         return Inertia::render('Admin/Patches/Index', [
             'patches'  => $patches,
             'plans'    => Plan::query()->orderBy('sort_order')->get(['id', 'code', 'name']),
-            'licenses' => License::query()->active()->limit(200)->get(['id', 'uuid']),
+            'licenses' => License::query()
+                ->active()
+                ->with([
+                    'customer:id,uuid,name,company,phone',
+                    'plan:id,code,name',
+                    'device:id,license_id,fingerprint,hostname,app_version,last_heartbeat_at',
+                ])
+                ->orderByDesc('last_seen_at')
+                ->limit(500)
+                ->get(['id', 'uuid', 'customer_id', 'plan_id', 'expires_at', 'last_seen_at']),
             'filters'  => $request->only('q', 'status'),
         ]);
     }
@@ -50,7 +59,9 @@ class PatchController extends Controller
     {
         $patch->load([
             'files', 'scripts', 'dependencies:id,patch_code,title',
-            'targetPlans:id,code,name', 'targetLicenses:id,uuid',
+            'targetPlans:id,code,name', 'targetLicenses:id,uuid,customer_id',
+            'targetLicenses.customer:id,uuid,name',
+            'targetLicenses.device:id,license_id,fingerprint,hostname',
             'deviceStatuses.device:id,fingerprint,hostname,app_version',
         ]);
 

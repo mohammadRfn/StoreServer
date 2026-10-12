@@ -1,7 +1,7 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Download, FileArchive, MonitorSmartphone, Package, Plus, Upload, X } from 'lucide-react';
-import { useRef, useState, type DragEvent, type FormEvent } from 'react';
+import { useMemo, useRef, useState, type DragEvent, type FormEvent } from 'react';
 import { Badge, StatusBadge } from '@/Components/ui/Badge';
 import { Button } from '@/Components/ui/Button';
 import { Card } from '@/Components/ui/Card';
@@ -18,13 +18,13 @@ import { useDisclosure } from '@/Hooks/useDisclosure';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { fadeUp } from '@/lib/motion';
 import { patchStatus, patchTargetType } from '@/lib/status';
-import { cn, formatBytes, formatDate, formatNumber } from '@/lib/utils';
+import { cn, formatBytes, formatDate, formatNumber, isOnline, timeAgo } from '@/lib/utils';
 import type { License, PageProps, Paginated, Patch, PatchStatus, PatchTargetType, Plan } from '@/types';
 
 type Props = PageProps<{
     patches: Paginated<Patch>;
     plans: Pick<Plan, 'id' | 'code' | 'name'>[];
-    licenses: Pick<License, 'id' | 'uuid'>[];
+    licenses: Pick<License, 'id' | 'uuid' | 'customer' | 'plan' | 'device' | 'expires_at'>[];
     filters: { q?: string; status?: string };
 }>;
 
@@ -77,6 +77,12 @@ PatchesIndex.layout = (page: React.ReactNode) => <AdminLayout>{page}</AdminLayou
 function UploadPatchModal({ open, onClose, plans, licenses }: { open: boolean; onClose: () => void; plans: Props['plans']; licenses: Props['licenses'] }) {
     const inputRef = useRef<HTMLInputElement>(null);
     const [drag, setDrag] = useState(false);
+    const [licQuery, setLicQuery] = useState('');
+    const filteredLicenses = useMemo(() => {
+        const q = licQuery.trim().toLowerCase();
+        if (!q) return licenses;
+        return licenses.filter((l) => [l.customer?.name, l.customer?.company, l.customer?.phone, l.plan?.name, l.uuid, l.device?.hostname, l.device?.fingerprint].some((v) => v?.toLowerCase().includes(q)));
+    }, [licenses, licQuery]);
     const form = useForm<{ file: File | null; target_type: PatchTargetType; is_mandatory: boolean; plans: number[]; licenses: number[]; depends_on: string }>({ file: null, target_type: 'all', is_mandatory: false, plans: [], licenses: [], depends_on: '' });
 
     const pick = (f: File | undefined) => {
@@ -140,7 +146,43 @@ function UploadPatchModal({ open, onClose, plans, licenses }: { open: boolean; o
                     )}
                     {form.data.target_type === 'licenses' && (
                         <motion.div key="lic" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-                            <Field label="لایسنس‌های هدف" required error={form.errors.licenses} hint={`${form.data.licenses.length} انتخاب‌شده`}><div className="grid max-h-48 grid-cols-2 gap-2 overflow-y-auto rounded-xl bg-white/[.02] p-3 ring-1 ring-white/[.06]">{licenses.map((l) => <Checkbox key={l.id} checked={form.data.licenses.includes(l.id)} onChange={() => toggle('licenses', l.id)} label={<span className="font-mono text-xs">{l.uuid.slice(0, 13)}…</span>} />)}</div></Field>
+                            <Field label="لایسنس‌های هدف" required error={form.errors.licenses} hint={`${form.data.licenses.length} انتخاب‌شده از ${licenses.length}`}>
+    <div className="space-y-2">
+        <SearchInput value={licQuery} onChange={setLicQuery} placeholder="جستجو: نام مشتری، شرکت، تلفن، کد لایسنس، نام کامپیوتر یا اثر انگشت" />
+        <div className="max-h-64 space-y-1 overflow-y-auto rounded-xl bg-white/[.02] p-2 ring-1 ring-white/[.06]">
+            {filteredLicenses.length === 0 && <p className="p-3 text-center text-xs text-neutral-500">موردی پیدا نشد.</p>}
+            {filteredLicenses.map((l) => (
+                <div key={l.id} className={cn('rounded-lg p-2.5 transition-colors', form.data.licenses.includes(l.id) ? 'bg-amber-400/[.08] ring-1 ring-amber-400/30' : 'hover:bg-white/[.04]')}>
+                    <Checkbox checked={form.data.licenses.includes(l.id)} onChange={() => toggle('licenses', l.id)} label={
+                        <span className="block">
+                            <span className="flex flex-wrap items-center gap-x-2 text-sm font-medium text-white">
+                                {l.customer?.name ?? 'بدون مشتری'}
+                                {l.customer?.company && <span className="text-xs font-normal text-neutral-400">({l.customer.company})</span>}
+                                <span className="text-xs font-normal text-neutral-500">· {l.plan?.name ?? '—'}</span>
+                            </span>
+                            <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-neutral-500">
+                                <span>لایسنس: <Mono className="text-amber-200/90">{l.uuid.slice(0, 8)}</Mono></span>
+                                {l.device ? (
+                                    <>
+                                        <span className="flex items-center gap-1">
+                                            <span className={`size-1.5 rounded-full ${isOnline(l.device.last_heartbeat_at) ? 'bg-emerald-400' : 'bg-neutral-600'}`} />
+                                            {l.device.hostname ?? 'دستگاه'}
+                                        </span>
+                                        <span>اثر انگشت: <Mono>{l.device.fingerprint.slice(0, 10)}</Mono></span>
+                                        <span>v{l.device.app_version ?? '?'} · {timeAgo(l.device.last_heartbeat_at)}</span>
+                                    </>
+                                ) : (
+                                    <span>فعال نشده</span>
+                                )}
+                                {l.customer?.phone && <span dir="ltr">{l.customer.phone}</span>}
+                            </span>
+                        </span>
+                    } />
+                </div>
+            ))}
+        </div>
+    </div>
+</Field>
                         </motion.div>
                     )}
                 </AnimatePresence>

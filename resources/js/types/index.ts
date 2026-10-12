@@ -323,7 +323,7 @@ export interface Patch {
     manifest?: Record<string, unknown> | null;
     uploader?: { id: ID; name: string } | null;
     target_plans?: Pick<Plan, 'id' | 'code' | 'name'>[];
-    target_licenses?: Pick<License, 'id' | 'uuid'>[];
+    target_licenses?: Pick<License, 'id' | 'uuid' | 'customer' | 'device'>[];
     files?: PatchFile[];
     scripts?: PatchScript[];
     dependencies?: Pick<Patch, 'id' | 'patch_code' | 'title'>[];

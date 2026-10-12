@@ -91,7 +91,7 @@ export default function PatchShow({ patch }: Props) {
                     <Card>
                         <CardHeader title="مشخصات" />
                         <KeyValue columns={1} items={[
-                            { label: 'هدف', value: <>{patchTargetType[patch.target_type]}{patch.target_type === 'plans' && <span className="text-neutral-500"> — {patch.target_plans?.map((p) => p.name).join('، ')}</span>}{patch.target_type === 'licenses' && <span className="text-neutral-500"> — {formatNumber(patch.target_licenses?.length ?? 0)} لایسنس</span>}</> },
+                            { label: 'هدف', value: <>{patchTargetType[patch.target_type]}{patch.target_type === 'plans' && <span className="text-neutral-500"> — {patch.target_plans?.map((p) => p.name).join('، ')}</span>}{patch.target_type === 'licenses' && <span className="text-neutral-500"> — {formatNumber(patch.target_licenses?.length ?? 0)} لایسنس: {patch.target_licenses?.map((l) => `${l.customer?.name ?? 'بدون مشتری'} (${l.uuid.slice(0, 8)}${l.device?.hostname ? ` · ${l.device.hostname}` : ''})`).join('، ')}</span>}</> },
                             { label: 'نوع', value: patch.type ?? '—' },
                             { label: 'فایل', value: <span dir="ltr">{patch.file_name} ({formatBytes(patch.file_size)})</span> },
                             { label: 'SHA-256', value: patch.file_sha256 ?? '—', mono: true },

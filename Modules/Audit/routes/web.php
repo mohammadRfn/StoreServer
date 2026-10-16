@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Audit\Http\Controllers\AlertController;
+use Modules\Audit\Http\Controllers\EvidenceController;
 use Modules\Audit\Http\Controllers\LogController;
 
 Route::middleware(['auth', 'admin.active'])->prefix('panel/logs')->group(function (): void {
@@ -15,3 +16,13 @@ Route::middleware(['auth', 'admin.active', 'permission:log.view'])->prefix('pane
     Route::post('/ack-all', [AlertController::class, 'acknowledgeAll'])->name('admin.alerts.ack-all');
     Route::post('/{event}/ack', [AlertController::class, 'acknowledge'])->whereNumber('event')->name('admin.alerts.ack');
 });
+
+Route::middleware(['auth', 'admin.active', 'permission:log.export'])
+    ->prefix('panel/licenses/{license}/evidence')->group(function (): void {
+        Route::get('/', [EvidenceController::class, 'index'])->name('admin.evidence.index');
+        Route::post('/', [EvidenceController::class, 'store'])->name('admin.evidence.store');
+        Route::get('/{report}', [EvidenceController::class, 'show'])->whereUuid('report')->name('admin.evidence.show');
+        Route::get('/{report}/print', [EvidenceController::class, 'print'])->whereUuid('report')->name('admin.evidence.print');
+        Route::get('/{report}/download/{format}', [EvidenceController::class, 'download'])
+            ->whereUuid('report')->whereIn('format', ['zip', 'json'])->name('admin.evidence.download');
+    });

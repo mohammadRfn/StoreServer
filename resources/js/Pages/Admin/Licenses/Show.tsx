@@ -1,6 +1,6 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeftRight, Ban, CalendarClock, Check, Cpu, History, MonitorSmartphone, PauseCircle, PlayCircle, RefreshCw, Sparkles, X } from 'lucide-react';
+import { ArrowLeftRight, Ban, CalendarClock, Check, Cpu, FileSearch, History, MonitorSmartphone, PauseCircle, PlayCircle, RefreshCw, Sparkles, X } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { ClientLogsCard } from '@/Components/ClientLogsCard';
 import { Badge, StatusBadge } from '@/Components/ui/Badge';
@@ -88,6 +88,13 @@ export default function LicenseShow({ license, entitlements, modules, plans = []
                             <Button variant="success" icon={<PlayCircle className="size-4" />} onClick={() => setAction('reactivate')}>
                                 فعال‌سازی مجدد
                             </Button>
+                        )}
+                        {can('log.export') && (
+                            <Link href={route('admin.evidence.index', license.uuid)}>
+                                <Button variant="outline" icon={<FileSearch className="size-4" />}>
+                                    گزارش مدرک
+                                </Button>
+                            </Link>
                         )}
                         {can('license.revoke') && license.status !== 'revoked' && (
                             <Button variant="danger" icon={<Ban className="size-4" />} onClick={() => setAction('revoke')}>

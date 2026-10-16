@@ -54,6 +54,19 @@ class HeartbeatController extends Controller
             'stats.audit_log.dead'           => ['sometimes', 'integer', 'min:0'],
             'stats.audit_log.oldest_pending' => ['sometimes', 'nullable', 'date'],
             'stats.audit_log.last_sequence'  => ['sometimes', 'integer', 'min:0'],
+            'system_info'                    => ['sometimes', 'nullable', 'array'],
+            'system_info.os'                 => ['nullable', 'string', 'max:128'],
+            'system_info.os_version'         => ['nullable', 'string', 'max:64'],
+            'system_info.os_build'           => ['nullable', 'string', 'max:16'],
+            'system_info.cpu'                => ['nullable', 'string', 'max:191'],
+            'system_info.motherboard_serial' => ['nullable', 'string', 'max:128'],
+            'system_info.motherboard_model'  => ['nullable', 'string', 'max:191'],
+            'system_info.disk_serial'        => ['nullable', 'string', 'max:128'],
+            'system_info.disk_model'         => ['nullable', 'string', 'max:191'],
+            'system_info.mac_address'        => ['nullable', 'string', 'max:64'],
+            'system_info.ram_mb'             => ['nullable', 'integer', 'min:0'],
+            'system_info.hostname'           => ['nullable', 'string', 'max:191'],
+            'system_info.timezone'           => ['nullable', 'string', 'max:64'],
         ]);
 
         // انقضای تنبل: اگر تاریخ گذشته باشد وضعیت به expired تغییر می‌کند
@@ -66,12 +79,31 @@ class HeartbeatController extends Controller
 
         // ثبت نسخه گزارش‌شده و آخرین اتصال
         $previousVersion = $device->app_version;
+
+        // مشخصات سخت‌افزار گزارش‌شده؛ فقط مقادیر غیرخالی جایگزین می‌شوند
+        $info  = (array) ($data['system_info'] ?? []);
+        $specs = [];
+
+        foreach (['os', 'os_version', 'cpu', 'motherboard_serial', 'disk_serial', 'mac_address', 'hostname', 'timezone'] as $field) {
+            if (! empty($info[$field])) {
+                $specs[$field] = $info[$field];
+            }
+        }
+
+        if (! empty($info['ram_mb'])) {
+            $specs['ram_mb'] = (int) $info['ram_mb'];
+        }
+
+        if ($info !== []) {
+            $specs['system_info'] = $info;
+        }
+
         $device->forceFill([
             'app_version'       => $data['app_version'],
             'app_version_code'  => SemVer::toCode($data['app_version']),
             'last_ip'           => $request->ip(),
             'last_heartbeat_at' => Carbon::now('UTC'),
-        ])->save();
+        ] + $specs)->save();
 
         if (isset($data['stats']['audit_log']) && is_array($data['stats']['audit_log'])) {
             $this->logHealth->record($license, $device, $data['stats']['audit_log']);

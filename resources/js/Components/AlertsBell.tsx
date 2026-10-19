@@ -11,6 +11,8 @@ const typeLabel: Record<string, string> = {
     client_logs_silent: 'دستگاه فعال ولی بدون لاگ',
     client_logs_stuck: 'صف ارسال لاگ اپ گیر کرده',
     client_logs_flood: 'سقف روزانه‌ی لاگ اپ پر شد',
+    client_logs_inbox_backlog: 'صف ورودی لاگ اپ‌ها انباشته شده',
+    client_logs_inbox_dead: 'دسته‌ی لاگ بعد از همه‌ی تلاش‌ها پردازش نشد (dead)',
     fingerprint_mismatch: 'استفاده از لایسنس روی دستگاه دیگر',
 };
 

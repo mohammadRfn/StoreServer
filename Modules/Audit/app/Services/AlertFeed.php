@@ -18,6 +18,8 @@ class AlertFeed
         'client_logs_silent',
         'client_logs_stuck',
         'client_logs_flood',
+        'client_logs_inbox_backlog',
+        'client_logs_inbox_dead',
         'fingerprint_mismatch',
     ];
 

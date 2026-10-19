@@ -37,6 +37,13 @@ Schedule::command('client-logs:verify')
     ->everyFifteenMinutes()
     ->withoutOverlapping();
 
+// پردازش صف ورودی لاگ اپ‌ها (fallback بدون worker؛ هر دقیقه).
+// expiry کوتاه برای mutex: اگر پاد وسط اجرا کشته شد، قفل ۲۴ ساعته (پیش‌فرض) صف را نبندد.
+Schedule::command('client-logs:process-inbox --limit=300 --max-seconds=45')
+    ->everyMinute()
+    ->withoutOverlapping(10)
+    ->runInBackground();
+
 // دستگاه‌هایی که زنده‌اند ولی لاگ نمی‌فرستند (هر ساعت)
 Schedule::command('client-logs:check-silent')
     ->hourly()

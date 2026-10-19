@@ -1,6 +1,6 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronDown, Download, RotateCcw, ScrollText } from 'lucide-react';
+import { ChevronDown, Download, Inbox, RotateCcw, ScrollText } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/Components/ui/Badge';
 import { Button } from '@/Components/ui/Button';
@@ -49,7 +49,7 @@ export default function LogsIndex({ category, categories, logs, filters }: Props
     return (
         <>
             <Head title="لاگ‌ها" />
-            <PageHeader title="لاگ‌ها و رویدادها" description={logCategory[category]?.description} actions={can('log.export') && <a href={exportUrl} target="_blank" rel="noreferrer"><Button variant="secondary" icon={<Download className="size-4" />}>خروجی CSV</Button></a>} />
+            <PageHeader title="لاگ‌ها و رویدادها" description={logCategory[category]?.description} actions={<div className="flex items-center gap-2"><Link href={route('admin.logs.inbox')}><Button variant="secondary" icon={<Inbox className="size-4" />}>صف ورودی اپ‌ها</Button></Link>{can('log.export') && <a href={exportUrl} target="_blank" rel="noreferrer"><Button variant="secondary" icon={<Download className="size-4" />}>خروجی CSV</Button></a>}</div>} />
 
             <motion.div variants={fadeUp} className="mb-4">
                 <Tabs id="log-tabs" value={category} onChange={setCategory} tabs={categories.map((c) => ({ value: c, label: logCategory[c]?.label ?? c }))} />

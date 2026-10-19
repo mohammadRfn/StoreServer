@@ -53,6 +53,16 @@ class ClientLogPruner
                     ->whereColumn('client_audit_logs.batch_id', 'client_audit_batches.id');
             });
 
+        // inbox ورودی: ردیف‌های done قدیمی حذف؛ payload ردیف‌های done زودتر خالی (dead هرگز خودکار پاک نمی‌شود)
+        $inboxDays = max(1, $this->settings->int('client_inbox_retention_days', (int) config('client_logs.retention_days', 14)));
+        $payloadDays = min($inboxDays, max(1, $this->settings->int('client_inbox_payload_keep_days', (int) config('client_logs.payload_keep_days', 3))));
+        $inboxCutoff = $now->copy()->subDays($inboxDays);
+        $payloadCutoff = $now->copy()->subDays($payloadDays);
+
+        $inboxDone = static fn (): Builder => DB::table('client_log_inbox')
+            ->where('status', 'done')
+            ->where('processed_at', '<', $inboxCutoff);
+
         $this->allowPurge(! $dryRun);
 
         try {
@@ -60,10 +70,39 @@ class ClientLogPruner
                 ['client_audit_logs (info/warning)', $normalDays, $this->run($lowLevel, $dryRun)],
                 ['client_audit_logs (error/security)', $longDays, $this->run($highLevel, $dryRun)],
                 ['client_audit_batches', $batchDays, $this->run($batches, $dryRun)],
+                ['client_log_inbox (payload پردازش‌شده)', $payloadDays, $this->clearInboxPayloads($payloadCutoff, $dryRun)],
+                ['client_log_inbox (done)', $inboxDays, $this->run($inboxDone, $dryRun)],
             ];
         } finally {
             $this->allowPurge(false);
         }
+    }
+
+    // payload ردیف‌های done را NULL می‌کند (chunked)
+    private function clearInboxPayloads(Carbon $cutoff, bool $dryRun): int
+    {
+        $base = static fn (): Builder => DB::table('client_log_inbox')
+            ->where('status', 'done')
+            ->whereNotNull('payload')
+            ->where('processed_at', '<', $cutoff);
+
+        if ($dryRun) {
+            return (int) $base()->count();
+        }
+
+        $total = 0;
+
+        do {
+            $ids = $base()->limit(self::CHUNK)->pluck('id')->all();
+
+            if ($ids === []) {
+                break;
+            }
+
+            $total += (int) DB::table('client_log_inbox')->whereIn('id', $ids)->update(['payload' => null]);
+        } while (count($ids) === self::CHUNK);
+
+        return $total;
     }
 
     private function run(Closure $query, bool $dryRun): int

@@ -6,6 +6,7 @@ namespace Modules\Audit\Services;
 
 use Illuminate\Support\Carbon;
 use Modules\Audit\Models\ClientAuditBatch;
+use Modules\Audit\Models\ClientLogInboxItem;
 use Modules\Audit\Models\SecurityEvent;
 use Modules\Base\Services\ServerSettings;
 use Modules\License\Models\Device;
@@ -22,7 +23,10 @@ class ClientLogQuota
     public function exceeded(License $license, ?Device $device, string $batchUuid, int $incoming): bool
     {
         // retry دسته‌ای که قبلاً پذیرفته شده مشمول سقف نیست (idempotent)
-        if ($batchUuid !== '' && ClientAuditBatch::query()->where('uuid', $batchUuid)->exists()) {
+        if ($batchUuid !== '' && (
+            ClientAuditBatch::query()->where('uuid', $batchUuid)->exists()
+            || ClientLogInboxItem::query()->where('batch_uuid', $batchUuid)->exists()
+        )) {
             return false;
         }
 
@@ -31,6 +35,14 @@ class ClientLogQuota
         $used = (int) ClientAuditBatch::query()
             ->where('license_id', $license->getKey())
             ->where('received_at', '>=', Carbon::now('UTC')->subDay())
+            ->sum('log_count');
+
+        // دسته‌های هنوز پردازش‌نشده‌ی inbox هنوز در client_audit_batches نیستند؛ سقف باید «هنگام دریافت» اعمال شود
+        // (وگرنه یک مشتری پرحجم قبل از پردازش inbox را پر می‌کند). done ها قبلاً در batches شمرده شده‌اند.
+        $used += (int) ClientLogInboxItem::query()
+            ->where('license_id', $license->getKey())
+            ->where('created_at', '>=', Carbon::now('UTC')->subDay())
+            ->where('status', '<>', ClientLogInboxItem::STATUS_DONE)
             ->sum('log_count');
 
         if ($used + $incoming <= $quota) {

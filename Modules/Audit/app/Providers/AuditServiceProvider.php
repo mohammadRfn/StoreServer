@@ -7,6 +7,7 @@ namespace Modules\Audit\Providers;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Modules\Audit\Console\CheckSilentDevicesCommand;
+use Modules\Audit\Console\ProcessInboxCommand;
 use Modules\Audit\Console\PruneLogsCommand;
 use Modules\Audit\Console\VerifyClientChainsCommand;
 use Modules\Audit\Services\AuditLogger;
@@ -22,7 +23,7 @@ class AuditServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->commands([PruneLogsCommand::class, VerifyClientChainsCommand::class, CheckSilentDevicesCommand::class]);
+        $this->commands([PruneLogsCommand::class, VerifyClientChainsCommand::class, CheckSilentDevicesCommand::class, ProcessInboxCommand::class]);
 
         Route::middleware('web')->group(module_path($this->moduleName, 'routes/web.php'));
     }
